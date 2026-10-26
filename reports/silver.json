@@ -1,0 +1,102 @@
+{
+  "rows_in": 79479946,
+  "duplicates_removed": 6,
+  "rows_quarantined": 1234826,
+  "rows_silver": 78245114,
+  "pass_rate_pct": 98.446,
+  "violations_by_rule": {
+    "negative_amount": 1117350,
+    "duration_over_6h": 54155,
+    "speed_over_80mph": 32496,
+    "non_positive_duration": 29079,
+    "distance_over_100mi": 2917,
+    "pickup_outside_file_month": 1150,
+    "fare_over_500": 1071
+  },
+  "warnings_by_rule": {
+    "total_mismatch": 21853295,
+    "missing_passenger_count": 5258553,
+    "zero_distance": 1428131,
+    "unknown_zone": 1008111,
+    "zero_passengers": 977222
+  },
+  "rules": [
+    {
+      "name": "missing_timestamp",
+      "severity": "error",
+      "description": "pickup or dropoff time is null"
+    },
+    {
+      "name": "pickup_outside_file_month",
+      "severity": "error",
+      "description": "pickup time falls outside the month the file covers (meter clock errors, 2001-2026 seen)"
+    },
+    {
+      "name": "non_positive_duration",
+      "severity": "error",
+      "description": "dropoff is at or before pickup"
+    },
+    {
+      "name": "duration_over_6h",
+      "severity": "error",
+      "description": "trip longer than 6 hours"
+    },
+    {
+      "name": "negative_amount",
+      "severity": "error",
+      "description": "negative fare or total (refund / void records)"
+    },
+    {
+      "name": "fare_over_500",
+      "severity": "error",
+      "description": "fare above $500"
+    },
+    {
+      "name": "distance_over_100mi",
+      "severity": "error",
+      "description": "distance above 100 miles"
+    },
+    {
+      "name": "speed_over_80mph",
+      "severity": "error",
+      "description": "average speed above 80 mph"
+    },
+    {
+      "name": "unknown_vendor",
+      "severity": "error",
+      "description": "vendor id not in data dictionary"
+    },
+    {
+      "name": "location_out_of_range",
+      "severity": "error",
+      "description": "location id outside the 265 TLC zones"
+    },
+    {
+      "name": "zero_distance",
+      "severity": "warning",
+      "description": "zero recorded distance"
+    },
+    {
+      "name": "unknown_zone",
+      "severity": "warning",
+      "description": "pickup or dropoff zone is Unknown / Outside NYC"
+    },
+    {
+      "name": "missing_passenger_count",
+      "severity": "warning",
+      "description": "passenger count missing (all such rows are payment_type 0, Flex Fare)"
+    },
+    {
+      "name": "zero_passengers",
+      "severity": "warning",
+      "description": "passenger count recorded as 0"
+    },
+    {
+      "name": "total_mismatch",
+      "severity": "warning",
+      "description": "fare components do not sum to total; mostly vendor 1 folding congestion/airport fees into extra"
+    }
+  ],
+  "conserved": true,
+  "seconds": 734.8
+}
