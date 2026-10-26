@@ -7,7 +7,8 @@ It runs medallion layers (bronze, silver, gold) with data-quality rules and a qu
 a Structured Streaming replay, a Spark MLlib demand forecast and a measured tuning study.
 Everything runs in one Docker container on a laptop.
 
-**Live dashboard:** https://neilss170.github.io/nyc-taxi-lakehouse/
+**Live dashboard:** https://neilss170.github.io/nyc-taxi-lakehouse/ (a choropleth of all 263 taxi zones, daily volume,
+data-quality breakdown, forecast vs actuals, the tuning study and the streaming check)
 
 Every number below comes from a file in [`reports/`](reports), written by the pipeline itself.
 
@@ -109,6 +110,7 @@ src/lakehouse/
   quality.py     declarative error / warning rules
   silver.py      dedupe, tag, split to silver / quarantine, row conservation check
   gold.py        business tables, source-gap flag, dashboard extracts
+  zonemap.py     TLC zone shapefile -> simplified SVG paths for the dashboard map
   streaming.py   file-stream replay, watermark, foreachBatch MERGE, batch parity check
   forecast.py    dense grid, leakage-safe features, GBT vs baselines
   benchmark.py   before/after timing harness, Delta log file-stats reader

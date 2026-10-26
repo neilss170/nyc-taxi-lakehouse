@@ -8,6 +8,7 @@ from pathlib import Path
 
 TLC_BASE_URL = "https://d37ci6vzurychx.cloudfront.net"
 ZONE_LOOKUP_URL = f"{TLC_BASE_URL}/misc/taxi_zone_lookup.csv"
+ZONE_SHAPES_URL = f"{TLC_BASE_URL}/misc/taxi_zones.zip"  # shapefile, NY State Plane Long Island (EPSG:2263, US feet)
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 REPORTS_DIR = REPO_ROOT / "reports"

@@ -63,3 +63,16 @@ def test_volume_anomaly_flags_a_collapsed_day(spark):
         [(date(2024, 1, d), 5 if d == 10 else 100) for d in range(1, 21)], "pickup_date date, trips long")
     flagged = [str(r.pickup_date) for r in flag_volume_anomalies(daily).where("volume_anomaly").collect()]
     assert flagged == ["2024-01-10"]
+
+
+def test_card_tip_rate_is_a_ratio_of_sums_not_a_mean_of_ratios(spark, lake, monkeypatch):
+    monkeypatch.setattr(gold, "SITE_DATA", lake / "site")
+    write_month(lake, "2024-03", [
+        trip(datetime(2024, 3, 4, 8), fare_amount=0.01, tip_amount=5.0, total_amount=5.01),
+        trip(datetime(2024, 3, 4, 9), fare_amount=100.0, tip_amount=10.0, total_amount=110.0),
+    ])
+    bronze.run(spark, ["2024-03"])
+    silver.run(spark, ["2024-03"])
+    gold.run(spark)
+    row = spark.read.format("delta").load(config.paths().gold("daily_kpis")).first()
+    assert row.avg_card_tip_pct == 15.0  # 15 / 100.01, where a mean of per-trip ratios would give ~25,005%

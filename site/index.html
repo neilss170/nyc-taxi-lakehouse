@@ -12,7 +12,7 @@
   --grid: #e1e0d9; --axis: #c3c2b7; --ring: rgba(11,11,11,0.10);
   --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --critical: #d03b3b; --good: #006300;
   --band: rgba(208,59,59,0.10);
-  --seq-0: #cde2fb; --seq-1: #0d366b;
+  --seq-0: #cde2fb; --seq-1: #0d366b; --nodata: #e1e0d9;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -21,7 +21,7 @@
     --grid: #2c2c2a; --axis: #383835; --ring: rgba(255,255,255,0.10);
     --s1: #3987e5; --s2: #d95926; --s3: #199e70; --critical: #e66767; --good: #0ca30c;
     --band: rgba(230,103,103,0.14);
-    --seq-0: #1f2a38; --seq-1: #86b6ef;
+    --seq-0: #1c3a5e; --seq-1: #86b6ef; --nodata: #4a4a46;
   }
 }
 :root[data-theme="dark"] {
@@ -30,7 +30,7 @@
   --grid: #2c2c2a; --axis: #383835; --ring: rgba(255,255,255,0.10);
   --s1: #3987e5; --s2: #d95926; --s3: #199e70; --critical: #e66767; --good: #0ca30c;
   --band: rgba(230,103,103,0.14);
-  --seq-0: #1f2a38; --seq-1: #86b6ef;
+  --seq-0: #1c3a5e; --seq-1: #86b6ef; --nodata: #4a4a46;
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--page); color: var(--ink);
@@ -77,6 +77,20 @@ details summary { cursor: pointer; }
 .note { font-size: 13px; color: var(--ink-2); margin: 10px 0 0; }
 .scroll { overflow-x: auto; }
 footer { margin-top: 48px; color: var(--muted); font-size: 13px; }
+.seg { display: inline-flex; border: 1px solid var(--ring); border-radius: 8px; overflow: hidden; margin: 0 0 10px; }
+.seg button { font: inherit; font-size: 13px; padding: 5px 12px; border: 0; background: var(--surface); color: var(--ink-2); cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--ring); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+.map-card { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 16px; align-items: start; }
+@media (max-width: 720px) { .map-card { grid-template-columns: 1fr; } }
+.map-card svg path.zone { stroke: var(--surface); stroke-width: 0.6; vector-effect: non-scaling-stroke; cursor: default; }
+.map-card svg path.zone:hover, .map-card svg path.zone:focus { stroke: var(--ink); stroke-width: 1.5; outline: none; }
+.map-card #map svg { max-height: 640px; margin: 0 auto; }
+.ramp { height: 10px; border-radius: 2px; margin: 6px 0 4px; }
+.ramp-labels { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.map-side h3 { margin-top: 0; }
+.map-side ol { margin: 8px 0 0; padding-left: 20px; font-size: 13px; color: var(--ink-2); }
+.map-side ol b { color: var(--ink); font-weight: 600; }
 .mark-hover:hover, .mark-hover:focus { opacity: 0.8; outline: none; }
 </style>
 </head>
@@ -100,6 +114,13 @@ footer { margin-top: 48px; color: var(--muted); font-size: 13px; }
     <p class="sub">Silver trips per pickup day. The shaded days are a gap in the published source file that the
       pipeline detects (under 50% of the ±7-day median) and that the forecast skips.</p>
     <div class="card" id="daily"></div>
+  </section>
+
+  <section>
+    <h2>Where trips start</h2>
+    <p class="sub">All 263 taxi zones, from the TLC's own boundary file. Two years of silver trips, by pickup zone.</p>
+    <div class="seg" id="map-metric" role="group" aria-label="Map metric"></div>
+    <div class="card map-card"><div id="map"></div></div>
   </section>
 
   <section>
@@ -313,6 +334,76 @@ function heatmap(card, rows) {
   card.appendChild(n);
 }
 
+const MAP_METRICS = {
+  trips: { label: "Trips", log: true, fmt: compact.format },
+  avg_fare: { label: "Average fare", fmt: (v) => "$" + v.toFixed(2) },
+  avg_card_tip_pct: { label: "Card tip %", fmt: (v) => v.toFixed(1) + "%" },
+};
+
+function zoneMap(card, shapes, stats) {
+  const byId = new Map(stats.map((z) => [z.location_id, z]));
+  const host = card.querySelector("#map");
+  const side = div("map-side", card);
+  const svg = el("svg", { viewBox: `0 0 ${shapes.width} ${shapes.height}`, role: "img", "aria-label": "Map of NYC taxi zones" }, host);
+  const tip = tooltip(card);
+  const paths = shapes.zones.map((z) => {
+    const p = el("path", { d: z.d, class: "zone", tabindex: 0, "fill-rule": "evenodd" }, svg);
+    return { z, p, s: byId.get(z.location_id) };
+  });
+  let metric = "trips";
+
+  function draw() {
+    const m = MAP_METRICS[metric], f = m.log ? Math.log10 : (v) => v;
+    const vals = paths.filter((x) => x.s && x.s[metric] != null && x.s.trips >= 100).map((x) => f(x.s[metric])).sort((a, b) => a - b);
+    // clamp to the 2nd-98th percentile so a few tiny zones do not flatten the scale
+    const lo = vals[Math.floor(vals.length * 0.02)], hi = vals[Math.ceil(vals.length * 0.98) - 1];
+    const color = (v) => mix(css("--seq-0"), css("--seq-1"), Math.min(Math.max((f(v) - lo) / (hi - lo), 0), 1));
+    for (const x of paths) {
+      const ok = x.s && x.s[metric] != null && x.s.trips >= 100;
+      x.p.setAttribute("fill", ok ? color(x.s[metric]) : css("--nodata"));
+    }
+    side.replaceChildren();
+    const h = document.createElement("h3"); h.textContent = m.label + (m.log ? " (log scale)" : ""); side.appendChild(h);
+    const ramp = div("ramp", side); ramp.style.background = `linear-gradient(90deg, ${css("--seq-0")}, ${css("--seq-1")})`;
+    const labels = div("ramp-labels", side);
+    // ends are clamped at the 2nd / 98th percentile, so say so rather than imply they are the extremes
+    div(null, labels, "≤" + m.fmt(m.log ? 10 ** lo : lo)); div(null, labels, m.fmt(m.log ? 10 ** hi : hi) + "+");
+    const n = document.createElement("p"); n.className = "note";
+    n.textContent = "Gray: no data or fewer than 100 trips in two years.";
+    side.appendChild(n);
+    const top = paths.filter((x) => x.s && x.s.trips >= 1000).sort((a, b) => b.s[metric] - a.s[metric]).slice(0, 5);
+    const t = document.createElement("h3"); t.textContent = "Highest"; t.style.marginTop = "14px"; side.appendChild(t);
+    const ol = document.createElement("ol");
+    for (const x of top) {
+      const li = document.createElement("li"); const b = document.createElement("b"); b.textContent = m.fmt(x.s[metric]);
+      li.appendChild(b); li.appendChild(document.createTextNode(" " + x.z.zone)); ol.appendChild(li);
+    }
+    side.appendChild(ol);
+  }
+
+  for (const x of paths) {
+    const show = (px, py) => tip.show(px, py, `${x.z.zone} · ${x.z.borough}`, x.s ? [
+      { value: fmt.format(x.s.trips), name: "trips" },
+      { value: "$" + x.s.avg_fare.toFixed(2), name: "average fare" },
+      { value: x.s.avg_card_tip_pct == null ? "–" : x.s.avg_card_tip_pct.toFixed(1) + "%", name: "card tip" },
+    ] : [{ value: "–", name: "no pickups in silver" }]);
+    x.p.addEventListener("pointermove", (e) => { const cr = card.getBoundingClientRect(); show(e.clientX - cr.left, e.clientY - cr.top); });
+    x.p.addEventListener("focus", () => { const b = x.p.getBoundingClientRect(), cr = card.getBoundingClientRect(); show(b.left - cr.left, b.bottom - cr.top); });
+    x.p.addEventListener("pointerleave", () => tip.hide()); x.p.addEventListener("blur", () => tip.hide());
+  }
+
+  const seg = document.getElementById("map-metric");
+  for (const [key, m] of Object.entries(MAP_METRICS)) {
+    const b = document.createElement("button"); b.type = "button"; b.textContent = m.label;
+    b.setAttribute("aria-pressed", String(key === metric));
+    b.addEventListener("click", () => {
+      metric = key; seg.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); draw();
+    });
+    seg.appendChild(b);
+  }
+  draw();
+}
+
 function table(tbl, head, rows, numeric = []) {
   const tr = tbl.createTHead().insertRow();
   head.forEach((h, i) => { const th = document.createElement("th"); th.textContent = h; if (numeric.includes(i)) th.className = "n"; tr.appendChild(th); });
@@ -331,9 +422,9 @@ const NAMES = { zorder_data_skipping: "Z-order data skipping", adaptive_query_ex
 const label = (s) => NAMES[s] || s.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
 
 (async function () {
-  const [bronze, silver, gold, stream, fc, bench, daily, zones, profile, fcDaily] = await Promise.all(
+  const [bronze, silver, gold, stream, fc, bench, daily, zones, profile, fcDaily, shapes] = await Promise.all(
     ["bronze.json", "silver.json", "gold.json", "streaming.json", "forecast.json", "benchmark.json",
-     "data/daily_kpis.json", "data/zone_summary.json", "data/hour_weekday_profile.json", "data/forecast_daily.json"].map(load));
+     "data/daily_kpis.json", "data/zone_summary.json", "data/hour_weekday_profile.json", "data/forecast_daily.json", "data/zone_shapes.json"].map(load));
 
   const tiles = document.getElementById("tiles");
   if (bronze) tile(tiles, compact.format(bronze.rows), `raw trips · ${bronze.months} months, reconciled to source`);
@@ -366,6 +457,7 @@ const label = (s) => NAMES[s] || s.replace(/_/g, " ").replace(/^./, (c) => c.toU
       { color: css("--s1"), valueFmt: compact.format, labelW: 190 });
   }
 
+  if (shapes && zones) zoneMap(document.querySelector(".map-card"), shapes, zones);
   if (profile) heatmap(document.getElementById("heat"), profile);
   if (zones) {
     const top = [...zones].sort((a, b) => b.trips - a.trips).slice(0, 12);

@@ -47,6 +47,7 @@ def download(months: list[str] | None = None) -> dict:
     targets = {config.raw_file_name(m): f"{config.TLC_BASE_URL}/trip-data/{config.raw_file_name(m)}"
                for m in months or config.months()}
     targets["taxi_zone_lookup.csv"] = config.ZONE_LOOKUP_URL
+    targets["taxi_zones.zip"] = config.ZONE_SHAPES_URL
 
     for name, url in targets.items():
         dest = raw / name

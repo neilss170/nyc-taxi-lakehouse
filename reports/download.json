@@ -1,0 +1,135 @@
+{
+  "files": {
+    "taxi_zone_lookup.csv": {
+      "bytes": 12331,
+      "sha256": "1a99e105092230f8620f301edcca7f80d3080642ff404d28ed957d3fa222c8ed",
+      "url": "https://d37ci6vzurychx.cloudfront.net/misc/taxi_zone_lookup.csv"
+    },
+    "yellow_tripdata_2023-01.parquet": {
+      "bytes": 47673370,
+      "sha256": "32df6f67578fa86c484a6b5ef23a5281992ff085521082340b0f9e5889e9a572",
+      "url": "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2023-01.parquet"
+    },
+    "yellow_tripdata_2023-02.parquet": {
+      "bytes": 47748012,
+      "sha256": "4809e6aaac64f05a62d16a25d55713be1537ad64fc261e895eaf2d2120fe750a",
+      "url": "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2023-02.parquet"
+    },
+    "yellow_tripdata_2023-03.parquet": {
+      "bytes": 56127762,
+      "sha256": "e7d44943111b007bf0e7084863511886e0db29f862f9a96239383a1f86c6c26e",
+      "url": "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2023-03.parquet"
+    },
+    "yellow_tripdata_2023-04.parquet": {
+      "bytes": 54222699,
+      "sha256": "95c01c53c865e06489179bdecce3a59603697a1557c4d5d183c20ae13a144dc6",
+      "url": "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2023-04.parquet"
+    },
+    "yellow_tripdata_2023-05.parquet": {
+      "bytes": 58654627,
+      "sha256": "9bd7d1c557bb9d0413619ba296b4828b884852a70bd07f2230b83f080d9a8591",
+      "url": "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2023-05.parquet"
+    },
+    "yellow_tripdata_2023-06.parquet": {
+      "bytes": 54999465,
+      "sha256": "3e60e29b5df45683948b68acbfb503aa459d14162c610622585c6580fdbfc73a",
+      "url": "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2023-06.parquet"
+    },
+    "yellow_tripdata_2023-07.parquet": {
+      "bytes": 48361828,
+      "sha256": "98504ae351d920e9e0b61241f5707f90ee1588cfb199c378459234b5035805ab",
+      "url": "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2023-07.parquet"
+    },
+    "yellow_tripdata_2023-08.parquet": {
+      "bytes": 48152353,
+      "sha256": "84ce36a2f84fa14c12fd976c79a7d4f30c871f1782b08ca7c27bb76ab946e66b",
+      "url": "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2023-08.parquet"
+    },
+    "yellow_tripdata_2023-09.parquet": {
+      "bytes": 47895515,
+      "sha256": "091bf156bea5bb10bd217f5f12375f966f8789349af45d5ee4153e3e1e077a87",
+      "url": "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2023-09.parquet"
+    },
+    "yellow_tripdata_2023-10.parquet": {
+      "bytes": 59009059,
+      "sha256": "dc5f069476d350df802ed8120f3b39ec321c34cfa905381e87f608c78ca0c645",
+      "url": "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2023-10.parquet"
+    },
+    "yellow_tripdata_2023-11.parquet": {
+      "bytes": 56094653,
+      "sha256": "af203de0e73a92d640121f02a34326f25037d62380fc406237c87c2a4231ae58",
+      "url": "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2023-11.parquet"
+    },
+    "yellow_tripdata_2023-12.parquet": {
+      "bytes": 56804275,
+      "sha256": "ab4f4db11cb31484747f62eb507c13fcfaff290aaf59c13e6465dea0b1166b9c",
+      "url": "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2023-12.parquet"
+    },
+    "yellow_tripdata_2024-01.parquet": {
+      "bytes": 49961641,
+      "sha256": "c4d59da7bbc8abaeeeb1727947ee93d9891a71acb42854bd80db1571b2030510",
+      "url": "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2024-01.parquet"
+    },
+    "yellow_tripdata_2024-02.parquet": {
+      "bytes": 50349284,
+      "sha256": "c76c43c18c6c6664080dd920baab4928988d5786a6b65980792ca7cd796f9f20",
+      "url": "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2024-02.parquet"
+    },
+    "yellow_tripdata_2024-03.parquet": {
+      "bytes": 60078280,
+      "sha256": "2d4cdc8fb96726cdd3803b13b02d2e61e71d45720aff0ebc693a8bdd1f249823",
+      "url": "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2024-03.parquet"
+    },
+    "yellow_tripdata_2024-04.parquet": {
+      "bytes": 59133625,
+      "sha256": "ce37f736c7cf9e92164c850ef2b502a8f7bb590fc1804b6edbcb80293da01b89",
+      "url": "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2024-04.parquet"
+    },
+    "yellow_tripdata_2024-05.parquet": {
+      "bytes": 62553128,
+      "sha256": "1974230be2b5a3ea92e47b5eb77f32dbf1de896d81ad8df4ab6faba52749ad23",
+      "url": "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2024-05.parquet"
+    },
+    "yellow_tripdata_2024-06.parquet": {
+      "bytes": 59859922,
+      "sha256": "677cf14c8347f745b583f012fbdba072334c6c4efa17bfd6a64369f2ba30329c",
+      "url": "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2024-06.parquet"
+    },
+    "yellow_tripdata_2024-07.parquet": {
+      "bytes": 52299432,
+      "sha256": "af12d6b04daeb78550799ae99933d495b27d715b6dbb0fad9bb750a4537d3070",
+      "url": "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2024-07.parquet"
+    },
+    "yellow_tripdata_2024-08.parquet": {
+      "bytes": 51067350,
+      "sha256": "7315643dd16bafc03e27d9903edbfd35404c2550a695d0da0a3e73852d940cfb",
+      "url": "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2024-08.parquet"
+    },
+    "yellow_tripdata_2024-09.parquet": {
+      "bytes": 61170186,
+      "sha256": "2f42e4a383a6635de803001462848d0aee2b47f6ce899126805d2d05361fb843",
+      "url": "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2024-09.parquet"
+    },
+    "yellow_tripdata_2024-10.parquet": {
+      "bytes": 64346071,
+      "sha256": "d19fe05aa0b259af24eb47051735293287f1e6dc263ba04030ec1ab4c6ec2650",
+      "url": "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2024-10.parquet"
+    },
+    "yellow_tripdata_2024-11.parquet": {
+      "bytes": 60658709,
+      "sha256": "5ef321876de5007a7c147a347389133fc94fd7ac28f82eb1d57d8f2cf05cfd3b",
+      "url": "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2024-11.parquet"
+    },
+    "yellow_tripdata_2024-12.parquet": {
+      "bytes": 61524085,
+      "sha256": "41ebf7db80bebde60c58e5143c14cdf38ad04a0f3e3ff44215b3e240d55f6c78",
+      "url": "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2024-12.parquet"
+    },
+    "taxi_zones.zip": {
+      "url": "https://d37ci6vzurychx.cloudfront.net/misc/taxi_zones.zip",
+      "bytes": 1022574,
+      "sha256": "f6d711917bb4340f8f644d5366c51665489eb2d426dd1a4a55677721ae5adf17"
+    }
+  },
+  "seconds": 2.3
+}

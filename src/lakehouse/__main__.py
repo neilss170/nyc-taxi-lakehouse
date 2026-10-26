@@ -8,7 +8,7 @@ import time
 
 from lakehouse import config
 
-STAGES = ["download", "bronze", "silver", "gold", "streaming", "forecast", "benchmark", "vacuum"]
+STAGES = ["download", "bronze", "silver", "gold", "zonemap", "streaming", "forecast", "benchmark", "vacuum"]
 
 
 def _write_report(name: str, payload: dict) -> None:

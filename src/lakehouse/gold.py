@@ -16,14 +16,17 @@ ANOMALY_RATIO = 0.5
 
 
 def _trip_metrics() -> list:
+    _card = F.col("payment_type") == 1
     return [
         F.count("*").alias("trips"),
         F.round(F.sum("total_amount"), 2).alias("revenue"),
         F.round(F.avg("fare_amount"), 2).alias("avg_fare"),
         F.round(F.avg("trip_distance"), 2).alias("avg_miles"),
         F.round(F.avg("trip_minutes"), 2).alias("avg_minutes"),
-        # tips are only recorded for card payments (payment_type 1)
-        F.round(F.avg(F.when(F.col("payment_type") == 1, F.col("tip_pct"))), 2).alias("avg_card_tip_pct"),
+        # tips are only recorded for card payments (payment_type 1). Ratio of sums, not a mean of per-trip
+        # percentages: a $5 tip on a $0.01 fare would otherwise count as 50,000% (EWR showed a 473% "average")
+        F.round(100 * F.sum(F.when(_card, F.col("tip_amount"))) / F.sum(F.when(_card, F.col("fare_amount"))), 2)
+        .alias("avg_card_tip_pct"),
     ]
 
 
