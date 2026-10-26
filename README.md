@@ -10,6 +10,25 @@ Everything runs in one Docker container on a laptop.
 **Live dashboard:** https://neilss170.github.io/nyc-taxi-lakehouse/ (five tabs: overview, a choropleth of all 263 taxi
 zones, data-quality breakdown, forecast vs actuals, and the tuning study with the streaming check; plain HTML + SVG, no framework)
 
+![Dashboard overview: KPI tiles, daily trips with the flagged source gap, pickups by borough, hour-by-weekday heatmap and busiest zones](docs/screenshots/overview-light.webp)
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/map-dark.webp" alt="Choropleth of all 263 NYC taxi zones by pickups, dark theme"><br><sub>Zone map: trips, average fare or card tip % per pickup zone</sub></td>
+    <td width="50%"><img src="docs/screenshots/quality-light.webp" alt="Data-quality page: quarantined and tagged rows by rule, bronze rows by month"><br><sub>Data quality: every quarantined and tagged row, by rule</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/forecast-light.webp" alt="Forecast page: GBT vs baselines on held-out Q4 2024 and feature importance"><br><sub>Forecast: GBT vs naive baselines, held-out Q4 2024</sub></td>
+    <td width="50%"><img src="docs/screenshots/engineering-dark.webp" alt="Engineering page: tuning study speed-ups and streaming replay checks, dark theme"><br><sub>Engineering: tuning study and streaming replay</sub></td>
+  </tr>
+</table>
+
+<details><summary>Dark theme and phone layout</summary>
+
+<img src="docs/screenshots/overview-dark.webp" alt="Dashboard overview in the dark theme" width="70%"> <img src="docs/screenshots/overview-light-phone.webp" alt="Dashboard overview at phone width" width="24%">
+
+</details>
+
 Every number below comes from a file in [`reports/`](reports), written by the pipeline itself.
 
 ## Results
