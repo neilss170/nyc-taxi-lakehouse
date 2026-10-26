@@ -98,5 +98,7 @@
     }
   ],
   "conserved": true,
-  "seconds": 734.8
+  "silver_files": 48,
+  "silver_avg_file_mb": 49.0,
+  "seconds": 921.2
 }

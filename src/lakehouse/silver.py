@@ -11,6 +11,8 @@ from lakehouse import config, quality
 from lakehouse.bronze import CANONICAL_SCHEMA
 
 BUSINESS_COLUMNS = list(CANONICAL_SCHEMA)
+# ~3.3M rows a month; written straight from the 200-partition shuffle this was 200 files of ~600 KB each
+SILVER_FILES_PER_MONTH = 2
 
 
 def _derive(df: DataFrame) -> DataFrame:
@@ -40,14 +42,16 @@ def process_month(spark: SparkSession, month: str) -> dict:
     # exact duplicates on every business column are re-sent records; keep one
     tagged = quality.tag(bronze.dropDuplicates(BUSINESS_COLUMNS + ["source_month"])).cache()
     try:
-        _replace_month(_derive(tagged.where(F.size("dq_errors") == 0)).drop("dq_errors"), p.silver, month)
-        _replace_month(tagged.where(F.size("dq_errors") > 0), p.quarantine, month)
+        rows_deduped = tagged.count()  # materialise the cache at full parallelism before the narrow writes
+        _replace_month(_derive(tagged.where(F.size("dq_errors") == 0)).drop("dq_errors")
+                       .coalesce(SILVER_FILES_PER_MONTH), p.silver, month)
+        _replace_month(tagged.where(F.size("dq_errors") > 0).coalesce(1), p.quarantine, month)
         errors = tagged.select(F.explode("dq_errors").alias("rule")).groupBy("rule").count().collect()
         warnings = tagged.where(F.size("dq_errors") == 0) \
             .select(F.explode("dq_warnings").alias("rule")).groupBy("rule").count().collect()
         return {
             "rows_in": bronze.count(),
-            "rows_deduped": tagged.count(),
+            "rows_deduped": rows_deduped,
             "errors": {r["rule"]: r["count"] for r in errors},
             "warnings": {r["rule"]: r["count"] for r in warnings},
         }
@@ -74,6 +78,7 @@ def run(spark: SparkSession, months: list[str] | None = None) -> dict:
     if rows_in != silver_rows + quarantined + duplicates:
         raise RuntimeError(f"row conservation failed: {rows_in} != {silver_rows} + {quarantined} + {duplicates}")
 
+    files = spark.sql(f"DESCRIBE DETAIL delta.`{p.silver}`").first()
     return {
         "rows_in": rows_in,
         "duplicates_removed": duplicates,
@@ -84,4 +89,6 @@ def run(spark: SparkSession, months: list[str] | None = None) -> dict:
         "warnings_by_rule": _sum([s["warnings"] for s in stats]),
         "rules": quality.rule_catalog(),
         "conserved": True,
+        "silver_files": files.numFiles,
+        "silver_avg_file_mb": round(files.sizeInBytes / max(files.numFiles, 1) / 1e6, 1),
     }

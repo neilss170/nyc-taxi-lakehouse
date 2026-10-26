@@ -110,7 +110,7 @@ def run(spark: SparkSession) -> dict:
         "borough_flows": _export(load("borough_flows"), "borough_flows", ["pu_borough", "do_borough"]),
         "hour_weekday_profile": _export(load("hour_weekday_profile"), "hour_weekday_profile",
                                         ["pickup_dow", "pickup_hour"]),
-        "airport_monthly": _export(load("airport_monthly"), "airport_monthly", ["source_month", "airport"]),
+        "airport_monthly": _export(load("airport_monthly"), "airport_monthly", ["source_month", "airport", "direction"]),
     }
     anomalies = [str(r.pickup_date) for r in load("daily_kpis").where("volume_anomaly").orderBy("pickup_date").collect()]
     return {"table_rows": counts, "volume_anomaly_days": anomalies, "dashboard_extracts": exported}
