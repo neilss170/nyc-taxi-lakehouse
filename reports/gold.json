@@ -1,0 +1,24 @@
+{
+  "table_rows": {
+    "daily_kpis": 731,
+    "zone_hourly_demand": 1943421,
+    "zone_summary": 263,
+    "borough_flows": 64,
+    "hour_weekday_profile": 168,
+    "airport_monthly": 144
+  },
+  "volume_anomaly_days": [
+    "2023-09-21",
+    "2023-09-22",
+    "2023-09-23",
+    "2023-09-24"
+  ],
+  "dashboard_extracts": {
+    "daily_kpis": 731,
+    "zone_summary": 263,
+    "borough_flows": 64,
+    "hour_weekday_profile": 168,
+    "airport_monthly": 144
+  },
+  "seconds": 88.6
+}
