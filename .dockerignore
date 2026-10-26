@@ -1,0 +1,6 @@
+.git
+data
+site
+reports
+**/__pycache__
+.pytest_cache
