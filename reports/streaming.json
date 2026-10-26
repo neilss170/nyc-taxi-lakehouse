@@ -1,0 +1,13 @@
+{
+  "month": "2024-12",
+  "files_replayed": 31,
+  "micro_batches": 31,
+  "rows_streamed": 3585099,
+  "rows_per_second": 53188,
+  "rows_dropped_by_watermark": 0,
+  "windows_written": 240424,
+  "windows_mismatched_vs_batch": 0,
+  "window": "15 minutes",
+  "watermark": "1 hour",
+  "seconds": 137.5
+}
