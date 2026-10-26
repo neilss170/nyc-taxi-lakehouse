@@ -5,70 +5,188 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>NYC Taxi Lakehouse</title>
 <meta name="description" content="Apache Spark + Delta Lake pipeline over 79.5M NYC yellow-taxi trips: data quality, gold tables, streaming, MLlib forecast and a tuning study.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script>
+  // apply a saved theme before first paint
+  try { const t = localStorage.getItem("theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+</script>
 <style>
 :root {
   color-scheme: light;
-  --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
-  --grid: #e1e0d9; --axis: #c3c2b7; --ring: rgba(11,11,11,0.10);
-  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --critical: #d03b3b; --good: #006300;
-  --band: rgba(208,59,59,0.10);
-  --seq-0: #cde2fb; --seq-1: #0d366b; --nodata: #e1e0d9;
+  --bg: #ebe2d5; --solid: #f4efe6;
+  --glass: rgba(255,255,255,0.46); --glass-strong: rgba(255,255,255,0.78); --edge: rgba(255,255,255,0.7);
+  --shadow: rgba(70,48,20,0.12); --hi: rgba(255,255,255,0.7);
+  --ink: #1b1915; --ink-2: #4a463f; --muted: #6f6a61;
+  --grid: rgba(27,25,21,0.09); --axis: rgba(27,25,21,0.24);
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --critical: #d03b3b; --good: #006300;
+  --band: rgba(208,59,59,0.12);
+  /* sequential ramp, validated against the light glass surface */
+  --seq-0: #7eaeea; --seq-1: #0d366b; --nodata: rgba(27,25,21,0.13);
+  --chip: rgba(237,161,0,0.24); --streets: rgba(27,25,21,0.03);
+  --blob-1: rgba(240,170,40,0.55); --blob-2: rgba(214,110,60,0.36); --blob-3: rgba(60,120,200,0.26); --blob-4: rgba(120,84,48,0.30);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
-    --grid: #2c2c2a; --axis: #383835; --ring: rgba(255,255,255,0.10);
-    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --critical: #e66767; --good: #0ca30c;
-    --band: rgba(230,103,103,0.14);
-    --seq-0: #1c3a5e; --seq-1: #86b6ef; --nodata: #4a4a46;
+    --bg: #120f0c; --solid: #1d1a17;
+    --glass: rgba(30,27,24,0.52); --glass-strong: rgba(36,32,28,0.88); --edge: rgba(255,255,255,0.09);
+    --shadow: rgba(0,0,0,0.35); --hi: rgba(255,255,255,0.06);
+    --ink: #f2eee8; --ink-2: #c9c2b6; --muted: #9a9286;
+    --grid: rgba(255,255,255,0.07); --axis: rgba(255,255,255,0.2);
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --critical: #e66767; --good: #0ca30c;
+    --band: rgba(230,103,103,0.16);
+    --seq-0: #2a5590; --seq-1: #a6cbf4; --nodata: rgba(255,255,255,0.1);
+    --chip: rgba(201,133,0,0.26); --streets: rgba(255,255,255,0.03);
+    --blob-1: rgba(200,130,20,0.30); --blob-2: rgba(160,70,30,0.26); --blob-3: rgba(40,80,150,0.26); --blob-4: rgba(90,60,30,0.32);
   }
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
-  --grid: #2c2c2a; --axis: #383835; --ring: rgba(255,255,255,0.10);
-  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --critical: #e66767; --good: #0ca30c;
-  --band: rgba(230,103,103,0.14);
-  --seq-0: #1c3a5e; --seq-1: #86b6ef; --nodata: #4a4a46;
+  --bg: #120f0c; --solid: #1d1a17;
+  --glass: rgba(30,27,24,0.52); --glass-strong: rgba(36,32,28,0.88); --edge: rgba(255,255,255,0.09);
+  --shadow: rgba(0,0,0,0.35); --hi: rgba(255,255,255,0.06);
+  --ink: #f2eee8; --ink-2: #c9c2b6; --muted: #9a9286;
+  --grid: rgba(255,255,255,0.07); --axis: rgba(255,255,255,0.2);
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --critical: #e66767; --good: #0ca30c;
+  --band: rgba(230,103,103,0.16);
+  --seq-0: #2a5590; --seq-1: #a6cbf4; --nodata: rgba(255,255,255,0.1);
+  --chip: rgba(201,133,0,0.26); --streets: rgba(255,255,255,0.03);
+  --blob-1: rgba(200,130,20,0.30); --blob-2: rgba(160,70,30,0.26); --blob-3: rgba(40,80,150,0.26); --blob-4: rgba(90,60,30,0.32);
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--page); color: var(--ink);
-  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
-main { max-width: 1120px; margin: 0 auto; padding: 32px 16px 64px; }
-header h1 { font-size: 28px; margin: 0 0 4px; letter-spacing: -0.01em; }
-header p { margin: 0; color: var(--ink-2); max-width: 760px; }
-header a, footer a { color: var(--s1); }
-.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin: 24px 0 8px; }
-.tile { background: var(--surface); border: 1px solid var(--ring); border-radius: 10px; padding: 14px 16px; }
-.tile .v { font-size: 26px; font-weight: 650; }
-.tile .l { color: var(--ink-2); font-size: 13px; }
-.flow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 16px 0 0; color: var(--ink-2); font-size: 13px; }
-.flow span.step { background: var(--surface); border: 1px solid var(--ring); border-radius: 999px; padding: 3px 10px; color: var(--ink); }
-section { margin-top: 40px; }
-section > h2 { font-size: 19px; margin: 0 0 2px; }
-section > p.sub { color: var(--ink-2); margin: 0 0 12px; max-width: 780px; }
-.card { background: var(--surface); border: 1px solid var(--ring); border-radius: 12px; padding: 16px; position: relative; }
-.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-@media (max-width: 820px) { .grid2 { grid-template-columns: 1fr; } }
-.card h3 { font-size: 15px; margin: 0 0 8px; }
+html { background: var(--bg); }
+body { margin: 0; background: transparent; color: var(--ink); min-height: 100vh;
+  font: 15px/1.5 Inter, system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; }
+a { color: inherit; }
+
+/* warm blurred backdrop the glass sits on: colour blobs plus a faint street grid at Manhattan's 29° */
+.backdrop { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none;
+  background:
+    radial-gradient(60vw 50vw at 6% 0%, var(--blob-1), transparent 62%),
+    radial-gradient(50vw 45vw at 100% 8%, var(--blob-2), transparent 62%),
+    radial-gradient(55vw 50vw at 88% 100%, var(--blob-3), transparent 62%),
+    radial-gradient(50vw 50vw at 0% 100%, var(--blob-4), transparent 62%),
+    var(--bg); }
+.backdrop::after { content: ""; position: absolute; inset: -50%; transform: rotate(29deg);
+  background:
+    repeating-linear-gradient(0deg, var(--streets) 0 2px, transparent 2px 46px),
+    repeating-linear-gradient(90deg, var(--streets) 0 3px, transparent 3px 180px); }
+
+.glass { background: var(--glass); border: 1px solid var(--edge);
+  -webkit-backdrop-filter: blur(22px) saturate(140%); backdrop-filter: blur(22px) saturate(140%);
+  box-shadow: 0 10px 32px var(--shadow), inset 0 1px 0 var(--hi); }
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass { background: var(--glass-strong); }
+}
+
+/* top bar */
+.topbar { position: sticky; top: 12px; z-index: 20; max-width: 1240px; margin: 12px auto 0; display: flex;
+  align-items: center; gap: 12px; padding: 8px 10px 8px 12px; border-radius: 999px; }
+.wrap-top { padding: 0 16px; }
+.brand { display: flex; align-items: center; gap: 10px; min-width: 0; text-decoration: none; }
+.brand .logo { width: 34px; height: 34px; border-radius: 50%; background: var(--s4); color: #1b1915; display: grid;
+  place-items: center; font-weight: 700; font-size: 11px; letter-spacing: 0.02em; flex: none; }
+.brand b { display: block; font-size: 14px; font-weight: 600; white-space: nowrap; }
+.brand small { display: block; color: var(--ink-2); font-size: 12px; white-space: nowrap; }
+.pill-info { margin: 0 auto; padding: 6px 14px; border-radius: 999px; font-size: 13px; color: var(--ink-2);
+  background: var(--glass); border: 1px solid var(--edge); display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.pill-info .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--good); }
+.actions { display: flex; gap: 6px; margin-left: auto; }
+.icon-btn { display: inline-flex; align-items: center; gap: 6px; height: 36px; min-width: 36px; padding: 0 10px; border-radius: 999px;
+  border: 1px solid var(--edge); background: var(--glass); color: var(--ink); font: inherit; font-size: 13px; font-weight: 500;
+  cursor: pointer; text-decoration: none; justify-content: center; }
+.icon-btn:hover { background: var(--glass-strong); }
+.icon-btn:focus-visible, .rail a:focus-visible, .dock a:focus-visible, .seg button:focus-visible { outline: 2px solid var(--s1); outline-offset: 2px; }
+svg.i { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+@media (max-width: 720px) { .pill-info { display: none; } .icon-btn .t { display: none; } }
+
+/* floating left rail */
+.rail { position: fixed; left: 16px; top: 50%; transform: translateY(-50%); z-index: 20; display: flex; flex-direction: column;
+  gap: 6px; padding: 8px; border-radius: 999px; }
+.rail a { position: relative; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; color: var(--ink-2); }
+.rail a:hover { background: var(--glass-strong); color: var(--ink); }
+.rail a[aria-current="page"] { background: var(--ink); color: var(--solid); }
+.rail a::after { content: attr(data-label); position: absolute; left: 52px; top: 50%; transform: translate(-4px, -50%); opacity: 0;
+  pointer-events: none; white-space: nowrap; font-size: 12px; font-weight: 500; padding: 4px 10px; border-radius: 999px;
+  background: var(--glass-strong); border: 1px solid var(--edge); color: var(--ink); transition: opacity 0.15s, transform 0.15s; }
+.rail a:hover::after, .rail a:focus-visible::after { opacity: 1; transform: translate(0, -50%); }
+@media (max-width: 1100px) { .rail { display: none; } }
+
+/* bottom dock */
+.dock { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 20; display: flex; gap: 4px; padding: 6px;
+  border-radius: 999px; max-width: calc(100vw - 32px); overflow-x: auto; scrollbar-width: none; }
+.dock::-webkit-scrollbar { display: none; }
+.dock a { padding: 8px 16px; border-radius: 999px; text-decoration: none; font-size: 13px; font-weight: 500; color: var(--ink-2); white-space: nowrap; }
+.dock a:hover { color: var(--ink); background: var(--glass-strong); }
+.dock a[aria-current="page"] { background: var(--ink); color: var(--solid); }
+@media (max-width: 520px) { .dock a { padding: 8px 10px; font-size: 12px; } }
+
+main { max-width: 1240px; margin: 0 auto; padding: 28px 16px 120px; }
+@media (min-width: 1101px) { main { padding-left: 88px; padding-right: 88px; } }
+.page[hidden] { display: none; }
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.page-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; margin: 8px 0 20px; }
+.page-head h1 { font-size: 30px; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 4px; }
+.page-head p { margin: 0; color: var(--ink-2); max-width: 720px; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chips span { font-size: 12px; font-weight: 500; padding: 5px 12px; border-radius: 999px; background: var(--glass); border: 1px solid var(--edge); color: var(--ink-2); }
+
+.card { border-radius: 22px; padding: 18px; position: relative; transition: transform 0.25s ease, box-shadow 0.25s ease; min-width: 0; }
+.card:hover { transform: translateY(-3px); box-shadow: 0 16px 40px var(--shadow), inset 0 1px 0 var(--hi); z-index: 3; }
+.card:focus-within { z-index: 3; }
+.card h3 { font-size: 15px; font-weight: 600; margin: 0 0 2px; }
+.card .sub { color: var(--ink-2); font-size: 13px; margin: 0 0 12px; }
+.grid { display: grid; gap: 16px; margin-bottom: 16px; }
+.g-2 { grid-template-columns: 1fr 1fr; }
+.g-main { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+@media (max-width: 900px) { .g-2, .g-main { grid-template-columns: 1fr; } }
+
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 16px; }
+.tile { border-radius: 22px; padding: 16px 18px; transition: transform 0.25s ease, box-shadow 0.25s ease; }
+.tile:hover { transform: translateY(-3px); box-shadow: 0 16px 40px var(--shadow), inset 0 1px 0 var(--hi); }
+.tile .top { display: flex; align-items: center; gap: 8px; color: var(--ink-2); font-size: 13px; font-weight: 500; }
+.tile .chip { width: 30px; height: 30px; border-radius: 50%; background: var(--chip); display: grid; place-items: center; color: var(--ink); }
+.tile .chip svg.i { width: 16px; height: 16px; }
+.tile .v { font-size: 28px; font-weight: 650; letter-spacing: -0.02em; margin-top: 10px; font-variant-numeric: tabular-nums; }
+.tile .l { color: var(--ink-2); font-size: 12.5px; }
+.tile .badge { display: inline-block; margin-top: 6px; font-size: 12px; font-weight: 600; color: var(--good); }
+
+.flow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0 0 16px; color: var(--muted); font-size: 13px; }
+.flow span.step { background: var(--glass); border: 1px solid var(--edge); border-radius: 999px; padding: 4px 12px; color: var(--ink); }
+
+.chart { position: relative; }
 svg { display: block; width: 100%; height: auto; overflow: visible; }
-svg text { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+svg text { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; font-family: inherit; }
 svg .lbl { fill: var(--ink-2); font-size: 12px; }
 svg .val { fill: var(--ink); font-size: 12px; }
+svg .big { fill: var(--ink); font-size: 22px; font-weight: 650; }
 .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--ink-2); margin: 0 0 8px; }
 .legend i { display: inline-block; width: 14px; height: 2px; vertical-align: middle; margin-right: 6px; border-radius: 1px; }
-.legend i.box { height: 10px; width: 10px; border-radius: 2px; }
-.tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--ring);
-  border-radius: 8px; padding: 8px 10px; font-size: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-  opacity: 0; transition: opacity 0.1s; z-index: 2; min-width: 140px; }
+.tip { position: absolute; pointer-events: none; background: var(--glass-strong); border: 1px solid var(--edge);
+  -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+  border-radius: 12px; padding: 8px 10px; font-size: 12px; box-shadow: 0 8px 24px var(--shadow);
+  opacity: 0; transition: opacity 0.1s; z-index: 5; min-width: 140px; }
 .tip .h { color: var(--ink-2); margin-bottom: 4px; }
 .tip .r { display: flex; align-items: center; gap: 6px; }
 .tip .r b { color: var(--ink); font-weight: 650; }
 .tip .r i { width: 10px; height: 2px; display: inline-block; }
 .tip .r span { color: var(--ink-2); }
+
+.donut { display: grid; gap: 18px; }
+.donut svg { max-width: 200px; margin: 0 auto; }
+.donut ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.donut li .row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.donut li .row i { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.donut li .row span { color: var(--ink-2); flex: 1; }
+.donut li .row b { font-weight: 600; font-variant-numeric: tabular-nums; }
+.donut li .row em { font-style: normal; color: var(--muted); font-variant-numeric: tabular-nums; width: 46px; text-align: right; }
+.track { height: 4px; border-radius: 2px; background: var(--grid); margin-top: 5px; overflow: hidden; }
+.track div { height: 100%; border-radius: 2px; }
+
 table { border-collapse: collapse; width: 100%; font-size: 13px; font-variant-numeric: tabular-nums; }
-th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--grid); }
+th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--grid); }
 th { color: var(--ink-2); font-weight: 600; }
 td.n, th.n { text-align: right; }
 .good { color: var(--good); font-weight: 600; }
@@ -76,98 +194,182 @@ details { margin-top: 10px; font-size: 13px; color: var(--ink-2); }
 details summary { cursor: pointer; }
 .note { font-size: 13px; color: var(--ink-2); margin: 10px 0 0; }
 .scroll { overflow-x: auto; }
-footer { margin-top: 48px; color: var(--muted); font-size: 13px; }
-.seg { display: inline-flex; border: 1px solid var(--ring); border-radius: 8px; overflow: hidden; margin: 0 0 10px; }
-.seg button { font: inherit; font-size: 13px; padding: 5px 12px; border: 0; background: var(--surface); color: var(--ink-2); cursor: pointer; }
-.seg button + button { border-left: 1px solid var(--ring); }
-.seg button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
-.map-card { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 16px; align-items: start; }
-@media (max-width: 720px) { .map-card { grid-template-columns: 1fr; } }
-.map-card svg path.zone { stroke: var(--surface); stroke-width: 0.6; vector-effect: non-scaling-stroke; cursor: default; }
+code { font-size: 12.5px; background: var(--grid); padding: 1px 5px; border-radius: 5px; }
+.findings { margin: 0; padding-left: 18px; color: var(--ink-2); font-size: 13.5px; display: grid; gap: 8px; }
+.findings b { color: var(--ink); font-weight: 600; }
+footer { color: var(--muted); font-size: 13px; margin-top: 28px; text-align: center; }
+
+.seg { display: inline-flex; gap: 4px; padding: 4px; border-radius: 999px; margin: 0; }
+.seg button { font: inherit; font-size: 13px; font-weight: 500; padding: 6px 14px; border: 0; border-radius: 999px; background: transparent; color: var(--ink-2); cursor: pointer; }
+.seg button:hover { color: var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--solid); }
+.map-card { display: grid; grid-template-columns: minmax(0, 1fr) 230px; gap: 18px; align-items: start; }
+@media (max-width: 760px) { .map-card { grid-template-columns: 1fr; } }
+.map-card:hover { transform: none; }
+.map-card svg path.zone { stroke: var(--solid); stroke-width: 0.6; vector-effect: non-scaling-stroke; cursor: default; }
 .map-card svg path.zone:hover, .map-card svg path.zone:focus { stroke: var(--ink); stroke-width: 1.5; outline: none; }
-.map-card #map svg { max-height: 640px; margin: 0 auto; }
-.ramp { height: 10px; border-radius: 2px; margin: 6px 0 4px; }
+.map-card .map svg { max-height: 660px; margin: 0 auto; }
+.ramp { height: 10px; border-radius: 5px; margin: 6px 0 4px; }
 .ramp-labels { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .map-side h3 { margin-top: 0; }
 .map-side ol { margin: 8px 0 0; padding-left: 20px; font-size: 13px; color: var(--ink-2); }
 .map-side ol b { color: var(--ink); font-weight: 600; }
 .mark-hover:hover, .mark-hover:focus { opacity: 0.8; outline: none; }
+
+/* entrance motion: blocks rise in turn, marks grow from their baseline, numbers count up (see countUp) */
+:root { --ease: cubic-bezier(0.22, 1, 0.36, 1); }
+.enter { animation: rise 0.7s var(--ease) backwards; animation-delay: calc(var(--i, 0) * 60ms); }
+.grow-x { transform-box: fill-box; transform-origin: left center; animation: growX 1s var(--ease) backwards; }
+.grow-y { transform-box: fill-box; transform-origin: center bottom; animation: growY 1s var(--ease) backwards; }
+.draw { stroke-dasharray: 1; animation: draw 1.6s var(--ease) backwards; }
+.sweep { stroke-dasharray: 1; animation: draw 1.3s var(--ease) backwards; animation-delay: 0.15s; }
+.fade-in { animation: fadeIn 0.9s ease backwards; animation-delay: 0.5s; }
+.pop { transform-box: fill-box; transform-origin: center; animation: pop 0.6s var(--ease) backwards; }
+@keyframes growX { from { transform: scaleX(0); } }
+@keyframes growY { from { transform: scaleY(0); } }
+@keyframes draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes fadeIn { from { opacity: 0; } }
+@keyframes pop { from { opacity: 0; transform: scale(0.5); } }
+.map-card svg path.zone { transition: fill 0.6s ease; }
+/* redraws after a theme switch or resize skip the entrance */
+.no-anim .page * { animation: none !important; }
+.pill-info .dot { animation: live 2.2s ease-out infinite; }
+@keyframes live { 0% { box-shadow: 0 0 0 0 rgba(12,163,12,0.5); } 70%, 100% { box-shadow: 0 0 0 7px rgba(12,163,12,0); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .enter, .grow-x, .grow-y, .draw, .sweep, .fade-in, .pop, .pill-info .dot { animation: none !important; }
+  .map-card svg path.zone { transition: none; }
+  .card, .tile, .rail a::after { transition: none; }
+  .card:hover, .tile:hover { transform: none; }
+}
 </style>
 </head>
 <body>
-<main>
-  <header>
-    <h1>NYC Taxi Lakehouse</h1>
-    <p>An Apache Spark 4.1 + Delta Lake pipeline over two years of NYC yellow-taxi trips (2023–2024).
-       Every number on this page is read from the pipeline's own output.
-       <a href="https://github.com/neilss170/nyc-taxi-lakehouse">Source on GitHub</a>.</p>
-    <div class="tiles" id="tiles"></div>
-    <div class="flow">
-      <span class="step">24 monthly Parquet files</span>→<span class="step">Bronze · schema-drift normalised</span>→
-      <span class="step">Silver · 15 quality rules + quarantine</span>→<span class="step">Gold · 6 business tables</span>→
-      <span class="step">Streaming · MLlib · tuning study</span>
+<div class="backdrop" aria-hidden="true"></div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-overview" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></symbol>
+  <symbol id="i-map" viewBox="0 0 24 24"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></symbol>
+  <symbol id="i-quality" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></symbol>
+  <symbol id="i-forecast" viewBox="0 0 24 24"><path d="M22 7l-8.5 8.5-5-5L2 17"/><path d="M16 7h6v6"/></symbol>
+  <symbol id="i-engine" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9z"/></symbol>
+  <symbol id="i-db" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.7 4 3 9 3s9-1.3 9-3V5"/><path d="M3 12c0 1.7 4 3 9 3s9-1.3 9-3"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8.5 12l2.5 2.5 4.5-5"/></symbol>
+  <symbol id="i-dollar" viewBox="0 0 24 24"><path d="M12 2v20"/><path d="M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></symbol>
+  <symbol id="i-pulse" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></symbol>
+  <symbol id="i-files" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+  <symbol id="i-code" viewBox="0 0 24 24"><path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/></symbol>
+</svg>
+
+<div class="wrap-top">
+  <header class="topbar glass">
+    <a class="brand" href="#overview"><span class="logo">NYC</span><span><b>NYC Taxi Lakehouse</b><small>Spark 4.1 · Delta Lake 4.3</small></span></a>
+    <div class="pill-info" id="pill-info"><span class="dot"></span><span>Pipeline reports loaded</span></div>
+    <div class="actions">
+      <a class="icon-btn" href="https://github.com/neilss170/nyc-taxi-lakehouse"><svg class="i"><use href="#i-code"/></svg><span class="t">Source</span></a>
+      <button class="icon-btn" id="theme" type="button" aria-label="Toggle dark theme"><svg class="i"><use href="#i-moon"/></svg></button>
     </div>
   </header>
+</div>
 
-  <section>
-    <h2>Daily trips</h2>
-    <p class="sub">Silver trips per pickup day. The shaded days are a gap in the published source file that the
-      pipeline detects (under 50% of the ±7-day median) and that the forecast skips.</p>
-    <div class="card" id="daily"></div>
-  </section>
+<nav class="rail glass" aria-label="Pages">
+  <a href="#overview" data-label="Overview"><svg class="i"><use href="#i-overview"/></svg></a>
+  <a href="#map" data-label="Zone map"><svg class="i"><use href="#i-map"/></svg></a>
+  <a href="#quality" data-label="Data quality"><svg class="i"><use href="#i-quality"/></svg></a>
+  <a href="#forecast" data-label="Forecast"><svg class="i"><use href="#i-forecast"/></svg></a>
+  <a href="#engineering" data-label="Engineering"><svg class="i"><use href="#i-engine"/></svg></a>
+</nav>
 
-  <section>
-    <h2>Where trips start</h2>
-    <p class="sub">All 263 taxi zones, from the TLC's own boundary file. Two years of silver trips, by pickup zone.</p>
-    <div class="seg" id="map-metric" role="group" aria-label="Map metric"></div>
-    <div class="card map-card"><div id="map"></div></div>
-  </section>
-
-  <section>
-    <h2>Data quality</h2>
-    <p class="sub" id="dq-sub"></p>
-    <div class="grid2">
-      <div class="card"><h3>Quarantined rows by rule</h3><div id="dq-errors"></div></div>
-      <div class="card"><h3>Kept but tagged (warnings)</h3><div id="dq-warnings"></div>
-        <p class="note">The fare-total mismatch is a vendor convention, not corruption: the gap is almost always
-          exactly $2.50 or $1.75, because vendor 1 folds the congestion and airport fees into <code>extra</code>.</p></div>
+<main>
+  <section class="page" id="overview" aria-labelledby="h-overview">
+    <div class="page-head">
+      <div><h1 id="h-overview">Two years of NYC yellow taxis</h1>
+        <p>An Apache Spark + Delta Lake pipeline over every TLC yellow-taxi trip in 2023–2024. Every number on this page is read from the pipeline's own output.</p></div>
+      <div class="chips"><span>2023-01 → 2024-12</span><span>bronze · silver · gold</span></div>
+    </div>
+    <div class="tiles" id="tiles"></div>
+    <div class="grid g-main">
+      <div class="card glass"><h3>Daily trips</h3>
+        <p class="sub">Silver trips per pickup day. The shaded days are a gap in the published source file that the pipeline detects (under 50% of the ±7-day median).</p>
+        <div class="chart" id="daily"></div></div>
+      <div class="card glass"><h3>Pickups by borough</h3><p class="sub">Two years of silver trips.</p><div class="chart" id="boroughs"></div></div>
+    </div>
+    <div class="grid g-2">
+      <div class="card glass"><h3>Trips by hour and weekday</h3><p class="sub" id="heat-sub"></p><div class="chart" id="heat"></div></div>
+      <div class="card glass"><h3>Busiest pickup zones</h3><p class="sub">Top 12 of 263 zones.</p><div class="chart" id="zones"></div></div>
     </div>
   </section>
 
-  <section>
-    <h2>When and where</h2>
-    <div class="grid2">
-      <div class="card"><h3>Trips by hour and weekday</h3><div id="heat"></div></div>
-      <div class="card"><h3>Busiest pickup zones</h3><div id="zones"></div></div>
+  <section class="page" id="map" aria-labelledby="h-map" hidden>
+    <div class="page-head">
+      <div><h1 id="h-map">Where trips start</h1>
+        <p>All 263 taxi zones, drawn from the TLC's own boundary file. Two years of silver trips, by pickup zone.</p></div>
+      <div class="seg glass" id="map-metric" role="group" aria-label="Map metric"></div>
+    </div>
+    <div class="card glass map-card" id="map-card"></div>
+  </section>
+
+  <section class="page" id="quality" aria-labelledby="h-quality" hidden>
+    <div class="page-head">
+      <div><h1 id="h-quality">Data quality</h1><p id="dq-sub"></p></div>
+    </div>
+    <div class="flow">
+      <span class="step">24 monthly Parquet files</span>→<span class="step">Bronze · schema-drift normalised</span>→
+      <span class="step">Silver · 15 quality rules + quarantine</span>→<span class="step">Gold · 6 business tables</span>
+    </div>
+    <div class="tiles" id="dq-tiles"></div>
+    <div class="grid g-2">
+      <div class="card glass"><h3>Quarantined rows by rule</h3><p class="sub">Errors: the row moves to quarantine with its reasons.</p><div class="chart" id="dq-errors"></div></div>
+      <div class="card glass"><h3>Kept but tagged</h3><p class="sub">Warnings: the row stays in silver with a flag.</p><div class="chart" id="dq-warnings"></div></div>
+    </div>
+    <div class="grid g-main">
+      <div class="card glass"><h3>Bronze rows by month</h3><p class="sub">Each month reconciled exactly against the source file's own row count.</p><div class="chart" id="months"></div></div>
+      <div class="card glass"><h3>What profiling found</h3>
+        <ul class="findings">
+          <li><b>Fare-total mismatch is a vendor convention, not corruption.</b> The gap is almost always exactly $2.50 or $1.75: vendor 1 folds the congestion and airport fees into <code>extra</code>. So it is a warning, not an error.</li>
+          <li><b>A source gap, 21–24 Sep 2023.</b> Those days hold under half the usual trips in the published file. Gold flags them and the forecast skips them.</li>
+          <li><b>Rule thresholds came from the data.</b> Speed, duration, distance and fare limits were set after profiling the distributions, not guessed.</li>
+        </ul></div>
     </div>
   </section>
 
-  <section>
-    <h2>Demand forecast (Spark MLlib)</h2>
-    <p class="sub" id="fc-sub"></p>
-    <div class="card"><div id="fc-chart"></div><div class="scroll"><table id="fc-table"></table></div></div>
+  <section class="page" id="forecast" aria-labelledby="h-forecast" hidden>
+    <div class="page-head">
+      <div><h1 id="h-forecast">Demand forecast</h1><p id="fc-sub"></p></div>
+      <div class="chips"><span>Spark MLlib</span><span>gradient-boosted trees</span></div>
+    </div>
+    <div class="tiles" id="fc-tiles"></div>
+    <div class="card glass" style="margin-bottom:16px"><h3>Daily pickups, held-out quarter</h3><p class="sub">Hourly per-zone predictions summed to days.</p>
+      <div class="chart" id="fc-chart"></div><div class="scroll"><table id="fc-table"></table></div></div>
+    <div class="card glass"><h3>What the model leans on</h3><p class="sub" id="fi-sub"></p><div class="chart" id="fi-chart"></div></div>
   </section>
 
-  <section>
-    <h2>Tuning study</h2>
-    <p class="sub" id="bench-sub"></p>
-    <div class="card"><div id="bench-chart"></div><div class="scroll"><table id="bench-table"></table></div></div>
-  </section>
-
-  <section>
-    <h2>Streaming replay</h2>
-    <p class="sub" id="stream-sub"></p>
+  <section class="page" id="engineering" aria-labelledby="h-engineering" hidden>
+    <div class="page-head">
+      <div><h1 id="h-engineering">Engineering</h1><p>A tuning study on the real silver table, and a Structured Streaming replay checked against the batch result.</p></div>
+    </div>
+    <div class="card glass" style="margin-bottom:16px"><h3>Tuning study</h3><p class="sub" id="bench-sub"></p>
+      <div class="chart" id="bench-chart"></div><div class="scroll"><table id="bench-table"></table></div></div>
+    <div class="page-head" style="margin-top:28px"><div><h1 style="font-size:22px">Streaming replay</h1><p id="stream-sub"></p></div></div>
     <div class="tiles" id="stream-tiles"></div>
   </section>
 
   <footer>Data: NYC Taxi &amp; Limousine Commission trip records. Built with PySpark, Delta Lake and plain SVG.</footer>
 </main>
 
+<nav class="dock glass" aria-label="Pages">
+  <a href="#overview">Overview</a><a href="#map">Map</a><a href="#quality">Quality</a><a href="#forecast">Forecast</a><a href="#engineering">Engineering</a>
+</nav>
+
 <script>
 const NS = "http://www.w3.org/2000/svg";
 const fmt = new Intl.NumberFormat("en-US");
 const compact = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 });
 const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+let uid = 0;
 
 async function load(name) {
   // gold extracts ship in data/; pipeline reports are copied to reports/ at deploy (../reports/ when run from the repo)
@@ -185,12 +387,19 @@ function el(tag, attrs = {}, parent) {
 }
 function txt(parent, x, y, s, attrs = {}) { const t = el("text", { x, y, ...attrs }, parent); t.textContent = s; return t; }
 function div(cls, parent, text) { const d = document.createElement("div"); if (cls) d.className = cls; if (text != null) d.textContent = text; if (parent) parent.appendChild(d); return d; }
+function fresh(id) { const n = document.getElementById(id); n.replaceChildren(); return n; }
 function contentWidth(n) {
   const cs = getComputedStyle(n);
   return n.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
 }
 function niceMax(v) { const p = 10 ** Math.floor(Math.log10(v)); return Math.ceil(v / p) * p; }
-function tile(parent, value, label) { const t = div("tile", parent); div("v", t, value); div("l", t, label); }
+function icon(name) { const s = el("svg", { class: "i", "aria-hidden": "true" }); el("use", { href: "#i-" + name }, s); return s; }
+function tile(parent, ic, title, value, label, badge) {
+  const t = div("tile glass", parent), top = div("top", t), chip = div("chip", top);
+  chip.appendChild(icon(ic)); top.appendChild(document.createTextNode(title));
+  div("v", t, value); div("l", t, label);
+  if (badge) div("badge", t, badge);
+}
 
 function tooltip(card) {
   const t = div("tip", card);
@@ -209,34 +418,40 @@ function tooltip(card) {
     hide() { t.style.opacity = 0; },
   };
 }
+function hover(target, card, tip, show, focusAt) {
+  target.addEventListener("pointermove", (e) => { const cr = card.getBoundingClientRect(); show(e.clientX - cr.left, e.clientY - cr.top); });
+  target.addEventListener("focus", () => show(...focusAt()));
+  target.addEventListener("pointerleave", () => tip.hide()); target.addEventListener("blur", () => tip.hide());
+}
 
-function legend(parent, items, box = false) {
+function legend(parent, items) {
   const l = div("legend", parent);
   for (const it of items) {
     const s = document.createElement("span"); const i = document.createElement("i");
-    if (box) i.className = "box"; i.style.background = it.color; s.appendChild(i);
+    i.style.background = it.color; s.appendChild(i);
     s.appendChild(document.createTextNode(it.name)); l.appendChild(s);
   }
 }
 
-// ---- line chart with crosshair; series: [{name, color, values:[y]}], x: [Date]
+// ---- line / area chart with crosshair; series: [{name, color, values:[y], area?}], x: [Date]
 function lineChart(card, { x, series, bands = [], height = 260, yFmt = compact.format, endLabels = false }) {
   if (series.length > 1) legend(card, series);
-  const W = Math.max(contentWidth(card), 320), H = height, m = { l: 44, r: endLabels ? 104 : 12, t: 10, b: 24 };
+  const W = Math.max(contentWidth(card), 300), H = height, m = { l: 44, r: endLabels ? 104 : 12, t: 10, b: 24 };
   const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img" }, card);
+  const defs = el("defs", {}, svg);
   const xs = x.map((d) => d.getTime()), x0 = Math.min(...xs), x1 = Math.max(...xs);
   const ymax = niceMax(Math.max(...series.flatMap((s) => s.values.filter((v) => v != null))));
   const X = (t) => m.l + ((t - x0) / (x1 - x0)) * (W - m.l - m.r);
   const Y = (v) => H - m.b - (v / ymax) * (H - m.t - m.b);
-  for (const b of bands) {
-    const a = X(b.from.getTime()) - 2, z = X(b.to.getTime()) + 2;
-    el("rect", { x: a, y: m.t, width: Math.max(z - a, 3), height: H - m.t - m.b, fill: css("--band") }, svg);
-    txt(svg, z + 6, m.t + 12, b.label, { class: "lbl" });
-  }
   for (let i = 0; i <= 4; i++) {
     const v = (ymax / 4) * i, y = Y(v);
     el("line", { x1: m.l, x2: W - m.r, y1: y, y2: y, stroke: i ? css("--grid") : css("--axis"), "stroke-width": 1 }, svg);
     txt(svg, m.l - 6, y + 4, yFmt(v), { "text-anchor": "end" });
+  }
+  for (const b of bands) {
+    const a = X(b.from.getTime()) - 2, z = X(b.to.getTime()) + 2;
+    el("rect", { x: a, y: m.t, width: Math.max(z - a, 3), height: H - m.t - m.b, fill: css("--band") }, svg);
+    txt(svg, z + 6, m.t + 12, b.label, { class: "lbl" });
   }
   const months = new Set();
   x.forEach((d, i) => {
@@ -255,11 +470,18 @@ function lineChart(card, { x, series, bands = [], height = 260, yFmt = compact.f
   for (const s of series) {
     let d = "", pen = false;
     s.values.forEach((v, i) => { if (v == null) { pen = false; return; } d += (pen ? "L" : "M") + X(xs[i]).toFixed(1) + "," + Y(v).toFixed(1); pen = true; });
-    el("path", { d, fill: "none", stroke: s.color, "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }, svg);
+    if (s.area) {
+      const id = "fill" + ++uid, g = el("linearGradient", { id, x1: 0, x2: 0, y1: 0, y2: 1 }, defs);
+      el("stop", { offset: "0%", "stop-color": s.color, "stop-opacity": 0.32 }, g);
+      el("stop", { offset: "100%", "stop-color": s.color, "stop-opacity": 0 }, g);
+      el("path", { d: `${d}L${X(x1).toFixed(1)},${Y(0)}L${X(x0).toFixed(1)},${Y(0)}Z`, fill: `url(#${id})`, class: "fade-in" }, svg);
+    }
+    el("path", { d, fill: "none", stroke: s.color, "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round",
+      pathLength: 1, class: "draw", style: `animation-delay:${series.indexOf(s) * 150}ms` }, svg);
     if (endLabels) {
       const i = s.values.length - 1;
-      el("circle", { cx: X(xs[i]), cy: Y(s.values[i]), r: 4, fill: s.color, stroke: css("--surface"), "stroke-width": 2 }, svg);
-      txt(svg, X(xs[i]) + 8, labelY.get(s), s.name, { class: "lbl" });
+      el("circle", { cx: X(xs[i]), cy: Y(s.values[i]), r: 4, fill: s.color, stroke: css("--solid"), "stroke-width": 2, class: "fade-in", style: "animation-delay:1.2s" }, svg);
+      txt(svg, X(xs[i]) + 8, labelY.get(s), s.name, { class: "lbl fade-in", style: "animation-delay:1.2s" });
     }
   }
   const cross = el("line", { y1: m.t, y2: H - m.b, stroke: css("--axis"), "stroke-width": 1, opacity: 0 }, svg);
@@ -283,25 +505,82 @@ function lineChart(card, { x, series, bands = [], height = 260, yFmt = compact.f
 
 // ---- horizontal bars, single series
 function hbars(card, items, { color = css("--s1"), valueFmt = fmt.format, labelW = 200 } = {}) {
-  const W = Math.max(contentWidth(card), 300);
+  const W = Math.max(contentWidth(card), 280);
   labelW = Math.min(labelW, Math.round(W * 0.42));
   const short = (t) => (t.length * 6.2 > labelW - 8 ? t.slice(0, Math.floor((labelW - 8) / 6.2) - 1) + "…" : t);
-  const bar = 18, gap = 10, H = items.length * (bar + gap);
+  const bar = 16, gap = 12, H = items.length * (bar + gap);
   const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img" }, card);
-  const max = Math.max(...items.map((d) => d.value)), right = 70;
+  const max = Math.max(...items.map((d) => d.value)), right = 64;
   const tip = tooltip(card);
   items.forEach((d, i) => {
-    const y = i * (bar + gap), w = Math.max(((W - labelW - right) * d.value) / max, 2);
+    const y = i * (bar + gap), w = Math.max(((W - labelW - right) * d.value) / max, 4);
     txt(svg, labelW - 8, y + bar / 2 + 4, short(d.label), { class: "lbl", "text-anchor": "end" });
     const g = el("g", { class: "mark-hover", tabindex: 0 }, svg);
-    el("path", { d: `M${labelW},${y}h${w - 4}a4,4 0 0 1 4,4v${bar - 8}a4,4 0 0 1 -4,4h${-(w - 4)}z`, fill: color }, g);
+    el("rect", { x: labelW, y, width: W - labelW - right, height: bar, rx: 4, fill: css("--grid") }, g);
+    el("path", { d: `M${labelW},${y}h${w - 4}a4,4 0 0 1 4,4v${bar - 8}a4,4 0 0 1 -4,4h${-(w - 4)}z`, fill: color, class: "grow-x", style: `animation-delay:${i * 50}ms` }, g);
     el("rect", { x: labelW, y: y - gap / 2, width: W - labelW, height: bar + gap, fill: "transparent" }, g);
-    txt(svg, labelW + w + 6, y + bar / 2 + 4, valueFmt(d.value), { class: "val" });
-    const show = (px, py) => tip.show(px, py, d.label, [{ value: valueFmt(d.value), name: d.note || "" }]);
-    g.addEventListener("pointermove", (e) => { const cr = card.getBoundingClientRect(); show(e.clientX - cr.left, e.clientY - cr.top); });
-    g.addEventListener("focus", () => show(labelW, y));
-    g.addEventListener("pointerleave", () => tip.hide()); g.addEventListener("blur", () => tip.hide());
+    txt(svg, W - right + 8, y + bar / 2 + 4, valueFmt(d.value), { class: "val" });
+    hover(g, card, tip, (px, py) => tip.show(px, py, d.label, [{ value: valueFmt(d.value), name: d.note || "" }]), () => [labelW, y]);
   });
+}
+
+// ---- vertical bars over categories, single series
+function vbars(card, items, { color = css("--s1"), valueFmt = fmt.format, height = 230 } = {}) {
+  const W = Math.max(contentWidth(card), 280), H = height, m = { l: 44, r: 6, t: 10, b: 24 };
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img" }, card);
+  const ymax = niceMax(Math.max(...items.map((d) => d.value))), n = items.length, cw = (W - m.l - m.r) / n;
+  const Y = (v) => H - m.b - (v / ymax) * (H - m.t - m.b);
+  for (let i = 0; i <= 4; i++) {
+    const v = (ymax / 4) * i, y = Y(v);
+    el("line", { x1: m.l, x2: W - m.r, y1: y, y2: y, stroke: i ? css("--grid") : css("--axis"), "stroke-width": 1 }, svg);
+    txt(svg, m.l - 6, y + 4, compact.format(v), { "text-anchor": "end" });
+  }
+  const every = Math.ceil((n * 42) / (W - m.l - m.r)), tip = tooltip(card);
+  items.forEach((d, i) => {
+    const w = Math.max(cw - 2 * Math.max(2, cw * 0.18), 2), x = m.l + i * cw + (cw - w) / 2, y = Y(d.value), base = Y(0);
+    const r = Math.min(4, w / 2, base - y);
+    const g = el("g", { class: "mark-hover", tabindex: 0 }, svg);
+    el("path", { d: `M${x},${base}V${y + r}a${r},${r} 0 0 1 ${r},${-r}h${w - 2 * r}a${r},${r} 0 0 1 ${r},${r}V${base}z`, fill: color, class: "grow-y", style: `animation-delay:${i * 35}ms` }, g);
+    el("rect", { x: m.l + i * cw, y: m.t, width: cw, height: H - m.t - m.b, fill: "transparent" }, g);
+    if (i % every === 0) txt(svg, x + w / 2, H - 6, d.short || d.label, { "text-anchor": "middle" });
+    hover(g, card, tip, (px, py) => tip.show(px, py, d.label, [{ value: valueFmt(d.value), name: d.note || "" }]), () => [x, y]);
+  });
+}
+
+// ---- donut with a legend that carries the numbers (labels, not color alone)
+function donut(card, items, { center, centerLabel }) {
+  const box = div("donut", card), S = 200, R = 94, r = 68, c = S / 2;
+  const svg = el("svg", { viewBox: `0 0 ${S} ${S}`, role: "img" }, box);
+  const total = items.reduce((a, d) => a + d.value, 0), tip = tooltip(card);
+  const pt = (a, rad) => [c + rad * Math.sin(a), c - rad * Math.cos(a)];
+  // the ring is revealed clockwise by a stroke sweeping round a mask
+  const maskId = "sweep" + ++uid, mask = el("mask", { id: maskId }, el("defs", {}, svg));
+  el("circle", { cx: c, cy: c, r: (R + r) / 2, fill: "none", stroke: "#fff", "stroke-width": R - r + 6, pathLength: 1, class: "sweep", transform: `rotate(-90 ${c} ${c})` }, mask);
+  const ring = el("g", { mask: `url(#${maskId})` }, svg);
+  let a0 = 0;
+  for (const d of items) {
+    const sweep = (d.value / total) * 2 * Math.PI, pad = Math.min(0.012, sweep / 4);
+    const s = a0 + pad, e = a0 + sweep - pad, large = e - s > Math.PI ? 1 : 0;
+    const [x1, y1] = pt(s, R), [x2, y2] = pt(e, R), [x3, y3] = pt(e, r), [x4, y4] = pt(s, r);
+    const g = el("g", { class: "mark-hover", tabindex: 0 }, ring);
+    el("path", { d: `M${x1},${y1}A${R},${R} 0 ${large} 1 ${x2},${y2}L${x3},${y3}A${r},${r} 0 ${large} 0 ${x4},${y4}Z`, fill: d.color }, g);
+    const mid = a0 + sweep / 2;
+    hover(g, card, tip, (px, py) => tip.show(px, py, d.label, [{ value: fmt.format(d.value), name: "trips" }, { value: ((100 * d.value) / total).toFixed(2) + "%", name: "share" }]),
+      () => { const k = svg.clientWidth / S, [mx, my] = pt(mid, R); return [mx * k, my * k]; });
+    a0 += sweep;
+  }
+  txt(svg, c, c + 2, center, { class: "big", "text-anchor": "middle" });
+  txt(svg, c, c + 22, centerLabel, { "text-anchor": "middle" });
+  const ul = document.createElement("ul"); box.appendChild(ul);
+  for (const d of items) {
+    const li = document.createElement("li"), row = div("row", li), i = document.createElement("i");
+    i.style.background = d.color; row.appendChild(i);
+    const s = document.createElement("span"); s.textContent = d.label; row.appendChild(s);
+    const b = document.createElement("b"); b.textContent = compact.format(d.value); row.appendChild(b);
+    const em = document.createElement("em"); em.textContent = ((100 * d.value) / total).toFixed(1) + "%"; row.appendChild(em);
+    const track = div("track", li), fill = div("grow-x", track); fill.style.animationDelay = "300ms"; fill.style.width = (100 * d.value) / total + "%"; fill.style.background = d.color;
+    ul.appendChild(li);
+  }
 }
 
 function mix(a, b, t) {
@@ -312,26 +591,20 @@ function mix(a, b, t) {
 
 function heatmap(card, rows) {
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], order = [2, 3, 4, 5, 6, 7, 1];
-  const W = Math.max(contentWidth(card), 300), l = 36, t = 4, cw = (W - l) / 24, ch = 22, H = t + 7 * ch + 20;
+  const W = Math.max(contentWidth(card), 280), l = 36, t = 4, cw = (W - l) / 24, ch = W < 400 ? 24 : 32, H = t + 7 * ch + 20;
   const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img" }, card);
   const max = Math.max(...rows.map((r) => r.trips)), tip = tooltip(card);
   const lo = css("--seq-0"), hi = css("--seq-1");
   order.forEach((dow, r) => {
     txt(svg, l - 6, t + r * ch + ch / 2 + 4, days[r], { "text-anchor": "end", class: "lbl" });
     rows.filter((x) => x.pickup_dow === dow).forEach((x) => {
-      const c = el("rect", { x: l + x.pickup_hour * cw + 1, y: t + r * ch + 1, width: cw - 2, height: ch - 2, rx: 2,
-        fill: mix(lo, hi, x.trips / max), class: "mark-hover", tabindex: 0 }, svg);
-      const show = (px, py) => tip.show(px, py, `${days[r]} ${String(x.pickup_hour).padStart(2, "0")}:00`,
-        [{ value: fmt.format(x.trips), name: "trips" }, { value: x.avg_mph + " mph", name: "avg speed" }]);
-      c.addEventListener("pointermove", (e) => { const cr = card.getBoundingClientRect(); show(e.clientX - cr.left, e.clientY - cr.top); });
-      c.addEventListener("focus", () => show(l + x.pickup_hour * cw, t + r * ch));
-      c.addEventListener("pointerleave", () => tip.hide()); c.addEventListener("blur", () => tip.hide());
+      const c = el("rect", { x: l + x.pickup_hour * cw + 1, y: t + r * ch + 1, width: cw - 2, height: ch - 2, rx: 3,
+        fill: mix(lo, hi, x.trips / max), class: "mark-hover pop", style: `animation-delay:${x.pickup_hour * 22 + r * 30}ms`, tabindex: 0 }, svg);
+      hover(c, card, tip, (px, py) => tip.show(px, py, `${days[r]} ${String(x.pickup_hour).padStart(2, "0")}:00`,
+        [{ value: fmt.format(x.trips), name: "trips" }, { value: x.avg_mph + " mph", name: "avg speed" }]), () => [l + x.pickup_hour * cw, t + r * ch]);
     });
   });
   for (const h of W < 400 ? [0, 12, 23] : [0, 6, 12, 18, 23]) txt(svg, l + h * cw + cw / 2, H - 4, String(h).padStart(2, "0"), { "text-anchor": "middle" });
-  const n = document.createElement("p"); n.className = "note";
-  n.textContent = "Darker = more trips. Hover a cell for trips and average speed (2 years combined).";
-  card.appendChild(n);
 }
 
 const MAP_METRICS = {
@@ -339,28 +612,27 @@ const MAP_METRICS = {
   avg_fare: { label: "Average fare", fmt: (v) => "$" + v.toFixed(2) },
   avg_card_tip_pct: { label: "Card tip %", fmt: (v) => v.toFixed(1) + "%" },
 };
+let mapMetric = "trips";
 
-function zoneMap(card, shapes, stats) {
+function zoneMap(card, seg, shapes, stats) {
   const byId = new Map(stats.map((z) => [z.location_id, z]));
-  const host = card.querySelector("#map");
-  const side = div("map-side", card);
+  const host = div("map", card), side = div("map-side", card);
   const svg = el("svg", { viewBox: `0 0 ${shapes.width} ${shapes.height}`, role: "img", "aria-label": "Map of NYC taxi zones" }, host);
   const tip = tooltip(card);
-  const paths = shapes.zones.map((z) => {
-    const p = el("path", { d: z.d, class: "zone", tabindex: 0, "fill-rule": "evenodd" }, svg);
+  const paths = shapes.zones.map((z, i) => {
+    const p = el("path", { d: z.d, class: "zone fade-in", style: `animation-delay:${(i % 40) * 12}ms`, tabindex: 0, "fill-rule": "evenodd" }, svg);
     return { z, p, s: byId.get(z.location_id) };
   });
-  let metric = "trips";
 
   function draw() {
-    const m = MAP_METRICS[metric], f = m.log ? Math.log10 : (v) => v;
-    const vals = paths.filter((x) => x.s && x.s[metric] != null && x.s.trips >= 100).map((x) => f(x.s[metric])).sort((a, b) => a - b);
+    const m = MAP_METRICS[mapMetric], f = m.log ? Math.log10 : (v) => v;
+    const vals = paths.filter((x) => x.s && x.s[mapMetric] != null && x.s.trips >= 100).map((x) => f(x.s[mapMetric])).sort((a, b) => a - b);
     // clamp to the 2nd-98th percentile so a few tiny zones do not flatten the scale
     const lo = vals[Math.floor(vals.length * 0.02)], hi = vals[Math.ceil(vals.length * 0.98) - 1];
     const color = (v) => mix(css("--seq-0"), css("--seq-1"), Math.min(Math.max((f(v) - lo) / (hi - lo), 0), 1));
     for (const x of paths) {
-      const ok = x.s && x.s[metric] != null && x.s.trips >= 100;
-      x.p.setAttribute("fill", ok ? color(x.s[metric]) : css("--nodata"));
+      const ok = x.s && x.s[mapMetric] != null && x.s.trips >= 100;
+      x.p.setAttribute("fill", ok ? color(x.s[mapMetric]) : css("--nodata"));
     }
     side.replaceChildren();
     const h = document.createElement("h3"); h.textContent = m.label + (m.log ? " (log scale)" : ""); side.appendChild(h);
@@ -371,33 +643,30 @@ function zoneMap(card, shapes, stats) {
     const n = document.createElement("p"); n.className = "note";
     n.textContent = "Gray: no data or fewer than 100 trips in two years.";
     side.appendChild(n);
-    const top = paths.filter((x) => x.s && x.s.trips >= 1000).sort((a, b) => b.s[metric] - a.s[metric]).slice(0, 5);
+    const top = paths.filter((x) => x.s && x.s.trips >= 1000).sort((a, b) => b.s[mapMetric] - a.s[mapMetric]).slice(0, 5);
     const t = document.createElement("h3"); t.textContent = "Highest"; t.style.marginTop = "14px"; side.appendChild(t);
     const ol = document.createElement("ol");
     for (const x of top) {
-      const li = document.createElement("li"); const b = document.createElement("b"); b.textContent = m.fmt(x.s[metric]);
+      const li = document.createElement("li"); const b = document.createElement("b"); b.textContent = m.fmt(x.s[mapMetric]);
       li.appendChild(b); li.appendChild(document.createTextNode(" " + x.z.zone)); ol.appendChild(li);
     }
     side.appendChild(ol);
   }
 
   for (const x of paths) {
-    const show = (px, py) => tip.show(px, py, `${x.z.zone} · ${x.z.borough}`, x.s ? [
+    hover(x.p, card, tip, (px, py) => tip.show(px, py, `${x.z.zone} · ${x.z.borough}`, x.s ? [
       { value: fmt.format(x.s.trips), name: "trips" },
       { value: "$" + x.s.avg_fare.toFixed(2), name: "average fare" },
       { value: x.s.avg_card_tip_pct == null ? "–" : x.s.avg_card_tip_pct.toFixed(1) + "%", name: "card tip" },
-    ] : [{ value: "–", name: "no pickups in silver" }]);
-    x.p.addEventListener("pointermove", (e) => { const cr = card.getBoundingClientRect(); show(e.clientX - cr.left, e.clientY - cr.top); });
-    x.p.addEventListener("focus", () => { const b = x.p.getBoundingClientRect(), cr = card.getBoundingClientRect(); show(b.left - cr.left, b.bottom - cr.top); });
-    x.p.addEventListener("pointerleave", () => tip.hide()); x.p.addEventListener("blur", () => tip.hide());
+    ] : [{ value: "–", name: "no pickups in silver" }]),
+    () => { const b = x.p.getBoundingClientRect(), cr = card.getBoundingClientRect(); return [b.left - cr.left, b.bottom - cr.top]; });
   }
 
-  const seg = document.getElementById("map-metric");
   for (const [key, m] of Object.entries(MAP_METRICS)) {
     const b = document.createElement("button"); b.type = "button"; b.textContent = m.label;
-    b.setAttribute("aria-pressed", String(key === metric));
+    b.setAttribute("aria-pressed", String(key === mapMetric));
     b.addEventListener("click", () => {
-      metric = key; seg.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); draw();
+      mapMetric = key; seg.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); draw();
     });
     seg.appendChild(b);
   }
@@ -405,6 +674,7 @@ function zoneMap(card, shapes, stats) {
 }
 
 function table(tbl, head, rows, numeric = []) {
+  tbl.replaceChildren();
   const tr = tbl.createTHead().insertRow();
   head.forEach((h, i) => { const th = document.createElement("th"); th.textContent = h; if (numeric.includes(i)) th.className = "n"; tr.appendChild(th); });
   const body = tbl.createTBody();
@@ -415,99 +685,227 @@ function table(tbl, head, rows, numeric = []) {
 }
 function tableView(card, head, rows, numeric) {
   const d = document.createElement("details"); const s = document.createElement("summary"); s.textContent = "Table view";
-  d.appendChild(s); const t = document.createElement("table"); d.appendChild(t); card.appendChild(d); table(t, head, rows, numeric);
+  d.appendChild(s); const t = document.createElement("table"); const w = div("scroll", d); w.appendChild(t); card.appendChild(d); table(t, head, rows, numeric);
 }
 const NAMES = { zorder_data_skipping: "Z-order data skipping", adaptive_query_execution: "Adaptive query execution (AQE)",
   distance_over_100mi: "Distance over 100 mi", speed_over_80mph: "Speed over 80 mph", fare_over_500: "Fare over $500" };
 const label = (s) => NAMES[s] || s.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
 
-(async function () {
-  const [bronze, silver, gold, stream, fc, bench, daily, zones, profile, fcDaily, shapes] = await Promise.all(
-    ["bronze.json", "silver.json", "gold.json", "streaming.json", "forecast.json", "benchmark.json",
-     "data/daily_kpis.json", "data/zone_summary.json", "data/hour_weekday_profile.json", "data/forecast_daily.json", "data/zone_shapes.json"].map(load));
-
-  const tiles = document.getElementById("tiles");
-  if (bronze) tile(tiles, compact.format(bronze.rows), `raw trips · ${bronze.months} months, reconciled to source`);
-  if (silver) tile(tiles, silver.pass_rate_pct.toFixed(2) + "%", `pass quality rules (${compact.format(silver.rows_silver)} rows)`);
-  if (daily) tile(tiles, "$" + compact.format(daily.reduce((a, d) => a + d.revenue, 0)), "charged to riders (total amount)");
-  if (fc) tile(tiles, fc.metrics.gbt.wape_pct.toFixed(1) + "%", "forecast error (WAPE), held-out Q4 2024");
-  if (bench) tile(tiles, Math.max(...bench.results.map((r) => r.speedup_x)).toFixed(1) + "×", "largest tuning speed-up");
-
-  if (daily) {
-    const card = document.getElementById("daily");
-    const gaps = daily.filter((d) => d.volume_anomaly).map((d) => new Date(d.pickup_date));
-    lineChart(card, {
-      x: daily.map((d) => new Date(d.pickup_date)),
-      series: [{ name: "Trips", color: css("--s1"), values: daily.map((d) => d.trips) }],
-      bands: gaps.length ? [{ from: gaps[0], to: gaps[gaps.length - 1], label: "source gap" }] : [],
-    });
-    tableView(card, ["Date", "Trips", "Revenue", "Avg fare", "Card tip %", "Flagged"],
-      daily.map((d) => [d.pickup_date, fmt.format(d.trips), fmt.format(Math.round(d.revenue)), d.avg_fare, d.avg_card_tip_pct, d.volume_anomaly ? "gap" : ""]), [1, 2, 3, 4]);
+// ---- numbers count up from zero; the last frame restores the exact rendered text
+function countUp(nodes) {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const items = [];
+  for (const n of nodes) {
+    const m = /^([^\d]*)(\d[\d,]*(?:\.\d+)?)(.*)$/s.exec(n.textContent);
+    if (!m) continue;
+    const dec = (m[2].split(".")[1] || "").length;
+    const f = new Intl.NumberFormat("en-US", { minimumFractionDigits: dec, maximumFractionDigits: dec, useGrouping: m[2].includes(",") });
+    items.push({ n, final: n.textContent, target: parseFloat(m[2].replace(/,/g, "")), put: (v) => (n.textContent = m[1] + f.format(v) + m[3]) });
   }
+  const t0 = performance.now(), dur = 1600;
+  (function frame(now) {
+    const t = Math.min((now - t0) / dur, 1), e = 1 - Math.pow(1 - t, 3);
+    for (const it of items) if (t === 1) it.n.textContent = it.final; else it.put(it.target * e);
+    if (t < 1) requestAnimationFrame(frame);
+  })(t0);
+}
 
-  if (silver) {
-    document.getElementById("dq-sub").textContent =
-      `${fmt.format(silver.rows_in)} bronze rows → ${fmt.format(silver.rows_silver)} in silver, ` +
-      `${fmt.format(silver.rows_quarantined)} quarantined with their reasons, ${fmt.format(silver.duplicates_removed)} exact duplicates removed. ` +
-      `Every row is accounted for. Rule thresholds came from profiling the data.`;
-    const desc = Object.fromEntries(silver.rules.map((r) => [r.name, r.description]));
-    hbars(document.getElementById("dq-errors"), Object.entries(silver.violations_by_rule).map(([k, v]) => ({ label: label(k), value: v, note: desc[k] })),
-      { color: css("--critical"), valueFmt: compact.format, labelW: 190 });
-    hbars(document.getElementById("dq-warnings"), Object.entries(silver.warnings_by_rule).map(([k, v]) => ({ label: label(k), value: v, note: desc[k] })),
-      { color: css("--s1"), valueFmt: compact.format, labelW: 190 });
-  }
+let D = {};
+const PAGES = {
+  overview() {
+    const { bronze, silver, fc, bench, daily, zones, profile } = D;
+    const tiles = fresh("tiles");
+    if (bronze) tile(tiles, "db", "Raw trips", compact.format(bronze.rows), `${bronze.months} months, reconciled to source`);
+    if (silver) tile(tiles, "check", "Quality pass rate", silver.pass_rate_pct.toFixed(2) + "%", `${compact.format(silver.rows_silver)} rows reach silver`);
+    if (daily) tile(tiles, "dollar", "Charged to riders", "$" + compact.format(daily.reduce((a, d) => a + d.revenue, 0)), "total amount, silver trips");
+    if (fc) tile(tiles, "target", "Forecast error", fc.metrics.gbt.wape_pct.toFixed(1) + "%", "WAPE, held-out Q4 2024",
+      `${fc.gbt_wape_improvement_vs_best_baseline_pct}% below best baseline`);
+    if (bench) {
+      const win = bench.results.reduce((a, r) => (r.speedup_x > a.speedup_x ? r : a));
+      tile(tiles, "engine", "Top tuning win", win.speedup_x.toFixed(1) + "×", label(win.experiment).toLowerCase() + " speed-up");
+    }
 
-  if (shapes && zones) zoneMap(document.querySelector(".map-card"), shapes, zones);
-  if (profile) heatmap(document.getElementById("heat"), profile);
-  if (zones) {
-    const top = [...zones].sort((a, b) => b.trips - a.trips).slice(0, 12);
-    hbars(document.getElementById("zones"), top.map((z) => ({ label: z.pu_zone, value: z.trips, note: `${z.pu_borough} · avg fare $${z.avg_fare}` })),
-      { valueFmt: compact.format, labelW: 190 });
-  }
+    if (daily) {
+      const card = fresh("daily");
+      const gaps = daily.filter((d) => d.volume_anomaly).map((d) => new Date(d.pickup_date));
+      lineChart(card, {
+        x: daily.map((d) => new Date(d.pickup_date)),
+        series: [{ name: "Trips", color: css("--s1"), values: daily.map((d) => d.trips), area: true }], height: 330,
+        bands: gaps.length ? [{ from: gaps[0], to: gaps[gaps.length - 1], label: "source gap" }] : [],
+      });
+      tableView(card, ["Date", "Trips", "Revenue", "Avg fare", "Card tip %", "Flagged"],
+        daily.map((d) => [d.pickup_date, fmt.format(d.trips), fmt.format(Math.round(d.revenue)), d.avg_fare, d.avg_card_tip_pct, d.volume_anomaly ? "gap" : ""]), [1, 2, 3, 4]);
+    }
+    if (zones) {
+      const by = {};
+      for (const z of zones) by[z.pu_borough] = (by[z.pu_borough] || 0) + z.trips;
+      const named = ["Manhattan", "Queens", "Brooklyn"], colors = ["--s1", "--s2", "--s3", "--s4"];
+      const items = named.map((b) => ({ label: b, value: by[b] || 0 }));
+      items.push({ label: "Other", value: Object.entries(by).filter(([k]) => !named.includes(k)).reduce((a, [, v]) => a + v, 0) });
+      items.forEach((d, i) => (d.color = css(colors[i])));
+      const total = items.reduce((a, d) => a + d.value, 0);
+      const card = fresh("boroughs");
+      donut(card, items, { center: compact.format(total), centerLabel: "pickups" });
+      const n = document.createElement("p"); n.className = "note"; n.textContent = "Other = Bronx, Staten Island, Newark Airport and unknown zones.";
+      card.appendChild(n);
 
-  if (fc && fcDaily) {
+      const top = [...zones].sort((a, b) => b.trips - a.trips).slice(0, 12);
+      hbars(fresh("zones"), top.map((z) => ({ label: z.pu_zone, value: z.trips, note: `${z.pu_borough} · avg fare $${z.avg_fare}` })),
+        { valueFmt: compact.format, labelW: 190 });
+    }
+    if (profile) {
+      // the ramp runs pale-to-deep in light mode and deep-to-bright in dark mode
+      document.getElementById("heat-sub").textContent = `${isDark() ? "Brighter" : "Darker"} = more trips. Hover a cell for trips and average speed.`;
+      heatmap(fresh("heat"), profile);
+    }
+  },
+
+  map() {
+    const { shapes, zones } = D;
+    if (shapes && zones) zoneMap(fresh("map-card"), fresh("map-metric"), shapes, zones);
+  },
+
+  quality() {
+    const { bronze, silver } = D;
+    if (silver) {
+      document.getElementById("dq-sub").textContent =
+        `${fmt.format(silver.rows_in)} bronze rows → ${fmt.format(silver.rows_silver)} in silver, ` +
+        `${fmt.format(silver.rows_quarantined)} quarantined with their reasons, ${fmt.format(silver.duplicates_removed)} exact duplicates removed. Every row is accounted for.`;
+      const t = fresh("dq-tiles");
+      tile(t, "db", "Bronze rows in", compact.format(silver.rows_in), "all 24 monthly files");
+      tile(t, "check", "Silver rows", compact.format(silver.rows_silver), silver.pass_rate_pct.toFixed(2) + "% pass every error rule");
+      tile(t, "quality", "Quarantined", compact.format(silver.rows_quarantined), "kept aside with the rules they broke");
+      tile(t, "files", "Row conservation", silver.conserved ? "Asserted" : "Failed", "in = silver + quarantine + duplicates");
+      const desc = Object.fromEntries(silver.rules.map((r) => [r.name, r.description]));
+      hbars(fresh("dq-errors"), Object.entries(silver.violations_by_rule).map(([k, v]) => ({ label: label(k), value: v, note: desc[k] })),
+        { color: css("--critical"), valueFmt: compact.format, labelW: 190 });
+      hbars(fresh("dq-warnings"), Object.entries(silver.warnings_by_rule).map(([k, v]) => ({ label: label(k), value: v, note: desc[k] })),
+        { color: css("--s1"), valueFmt: compact.format, labelW: 190 });
+    }
+    if (bronze) {
+      const card = fresh("months");
+      const items = Object.entries(bronze.rows_by_month).map(([k, v]) => {
+        const d = new Date(k + "-01T00:00:00Z");
+        return { label: d.toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" }), short: d.toLocaleDateString("en-US", { month: "short", year: "2-digit", timeZone: "UTC" }), value: v, note: "rows" };
+      });
+      vbars(card, items, { color: css("--s1") });
+      tableView(card, ["Month", "Rows"], Object.entries(bronze.rows_by_month).map(([k, v]) => [k, fmt.format(v)]), [1]);
+    }
+  },
+
+  forecast() {
+    const { fc, fcDaily } = D;
+    if (!fc) return;
     document.getElementById("fc-sub").textContent =
       `Day-ahead hourly pickups for the ${fc.zones_modelled} busiest zones (${fc.share_of_all_trips_pct}% of all trips). ` +
-      `Trained on data before ${fc.test_period.replace(">= ", "")}, scored on the held-out quarter after it. ` +
-      `Gradient-boosted trees vs. the naive baselines a dispatcher would use.`;
-    const card = document.getElementById("fc-chart");
-    lineChart(card, {
-      x: fcDaily.map((d) => new Date(d.date)), height: 240, endLabels: true,
-      series: [
-        { name: "Actual", color: css("--s1"), values: fcDaily.map((d) => d.actual) },
-        { name: "GBT forecast", color: css("--s2"), values: fcDaily.map((d) => d.gbt) },
-        { name: "Same day last week", color: css("--s3"), values: fcDaily.map((d) => d.last_week) },
-      ],
-    });
+      `Trained on data before ${fc.test_period.replace(">= ", "")}, scored on the held-out quarter after it, against the naive baselines a dispatcher would use.`;
     const names = { gbt: "Gradient-boosted trees (MLlib)", naive_same_hour_yesterday: "Same hour yesterday",
       naive_same_hour_last_week: "Same hour last week", naive_7day_same_hour_mean: "Mean of same hour, last 7 days" };
+    const best = fc.metrics[fc.best_baseline];
+    const t = fresh("fc-tiles");
+    tile(t, "target", "Model error (WAPE)", fc.metrics.gbt.wape_pct.toFixed(2) + "%", "gradient-boosted trees", `${fc.gbt_wape_improvement_vs_best_baseline_pct}% below best baseline`);
+    tile(t, "pulse", "Best baseline", best.wape_pct.toFixed(2) + "%", names[fc.best_baseline].toLowerCase());
+    tile(t, "map", "Zones modelled", String(fc.zones_modelled), `${fc.share_of_all_trips_pct}% of all trips`);
+    tile(t, "db", "Training rows", compact.format(fc.train_rows), `${compact.format(fc.test_rows)} zone-hours held out`);
+    if (fcDaily) {
+      lineChart(fresh("fc-chart"), {
+        x: fcDaily.map((d) => new Date(d.date)), height: 250, endLabels: true,
+        series: [
+          { name: "Actual", color: css("--s1"), values: fcDaily.map((d) => d.actual) },
+          { name: "GBT forecast", color: css("--s2"), values: fcDaily.map((d) => d.gbt) },
+          { name: "Same day last week", color: css("--s3"), values: fcDaily.map((d) => d.last_week) },
+        ],
+      });
+    }
     const rows = Object.entries(fc.metrics).sort((a, b) => a[1].wape_pct - b[1].wape_pct)
       .map(([k, m]) => [k === "gbt" ? { text: names[k], cls: "good" } : names[k], m.wape_pct.toFixed(2) + "%", m.mae.toFixed(2), m.rmse.toFixed(2)]);
     table(document.getElementById("fc-table"), ["Model (hourly, per zone)", "WAPE", "MAE (trips)", "RMSE"], rows, [1, 2, 3]);
-  }
+    const fi = Object.entries(fc.feature_importance).sort((a, b) => b[1] - a[1]);
+    document.getElementById("fi-sub").textContent =
+      `GBT feature importance. The same hour one week earlier (lag 168 h) carries ${(fi[0][1] * 100).toFixed(1)}% of it, ` +
+      `which is also why "same hour last week" is the strongest baseline.`;
+    const FI = { lag_168: "Same hour, 1 week ago", lag_336: "Same hour, 2 weeks ago", lag_24: "Same hour, yesterday", lag_48: "Same hour, 2 days ago",
+      zone_mean: "Zone average", dow: "Day of week", hour: "Hour of day", month: "Month", same_hour_mean_7d: "Same-hour mean, last 7 days",
+      is_weekend: "Weekend", is_holiday: "Public holiday" };
+    hbars(fresh("fi-chart"), fi.map(([k, v]) => ({ label: FI[k] || label(k), value: v * 100, note: k })),
+      { valueFmt: (v) => v.toFixed(1) + "%", labelW: 210 });
+  },
 
-  if (bench) {
-    document.getElementById("bench-sub").textContent =
-      `The same query under two settings, on the real silver table. ${bench.method}. Laptop seconds; the ratios are the point.`;
-    const card = document.getElementById("bench-chart");
-    hbars(card, bench.results.map((r) => ({ label: label(r.experiment), value: r.speedup_x, note: `${r.baseline.seconds}s → ${r.tuned.seconds}s` })),
-      { valueFmt: (v) => v.toFixed(1) + "×", labelW: 210 });
-    table(document.getElementById("bench-table"), ["Experiment", "Baseline", "Tuned", "Files read", "Seconds", "Speed-up"],
-      bench.results.map((r) => [label(r.experiment), r.baseline.setting, r.tuned.setting,
-        r.files_scanned ? `${fmt.format(r.files_scanned.baseline)} → ${fmt.format(r.files_scanned.tuned)}` : "–",
-        `${r.baseline.seconds} → ${r.tuned.seconds}`, r.speedup_x.toFixed(2) + "×"]), [3, 4, 5]);
-  }
+  engineering() {
+    const { bench, stream, silver } = D;
+    if (bench) {
+      const flat = bench.results.filter((r) => r.speedup_x < 1.2).map((r) => label(r.experiment));
+      document.getElementById("bench-sub").textContent =
+        `The same query under two settings, on the real silver table. ${bench.method}. Laptop seconds; the ratios are the point.` +
+        (flat.length ? ` ${flat.join(", ")} gave no meaningful gain on this workload.` : "");
+      hbars(fresh("bench-chart"), bench.results.map((r) => ({ label: label(r.experiment), value: r.speedup_x, note: `${r.baseline.seconds}s → ${r.tuned.seconds}s` })),
+        { valueFmt: (v) => v.toFixed(1) + "×", labelW: 210 });
+      table(document.getElementById("bench-table"), ["Experiment", "Baseline", "Tuned", "Files read", "Seconds", "Speed-up"],
+        bench.results.map((r) => [label(r.experiment), r.baseline.setting, r.tuned.setting,
+          r.files_scanned ? `${fmt.format(r.files_scanned.baseline)} → ${fmt.format(r.files_scanned.tuned)}` : "–",
+          `${r.baseline.seconds} → ${r.tuned.seconds}`, r.speedup_x.toFixed(2) + "×"]), [3, 4, 5]);
+    }
+    if (stream) {
+      document.getElementById("stream-sub").textContent =
+        `${stream.month} replayed as ${stream.files_replayed} daily files through Structured Streaming: ${stream.window} windows per zone, ` +
+        `a ${stream.watermark} event-time watermark, and foreachBatch MERGE into Delta so restarts never double-count.`;
+      const t = fresh("stream-tiles");
+      tile(t, "pulse", "Rows streamed", compact.format(stream.rows_streamed), `in ${stream.micro_batches} micro-batches`);
+      tile(t, "engine", "Throughput", compact.format(stream.rows_per_second) + "/s", "on a laptop, in Docker");
+      tile(t, "overview", "Windows written", fmt.format(stream.windows_written), "zone × 15-minute windows");
+      tile(t, "check", "Mismatches vs batch", String(stream.windows_mismatched_vs_batch), "windows differing from the batch result");
+      if (silver && silver.silver_files) tile(t, "files", "Silver layout", fmt.format(silver.silver_files) + " files", `~${silver.silver_avg_file_mb} MB each after compaction`);
+    }
+  },
+};
 
-  if (stream) {
-    document.getElementById("stream-sub").textContent =
-      `${stream.month} replayed as ${stream.files_replayed} daily files through Structured Streaming: ${stream.window} windows per zone, ` +
-      `a ${stream.watermark} event-time watermark, and foreachBatch MERGE into Delta so restarts never double-count.`;
-    const t = document.getElementById("stream-tiles");
-    tile(t, compact.format(stream.rows_streamed), `rows in ${stream.micro_batches} micro-batches`);
-    tile(t, compact.format(stream.rows_per_second) + "/s", "throughput on a laptop");
-    tile(t, fmt.format(stream.windows_written), "zone × 15-min windows written");
-    tile(t, String(stream.windows_mismatched_vs_batch), "windows differing from batch result");
+// ---- routing: a page is rebuilt whenever it is shown (charts need a laid-out width), so its entrance replays
+function current() { const h = location.hash.slice(1); return PAGES[h] ? h : "overview"; }
+function show(animate = true) {
+  const page = current();
+  document.documentElement.classList.toggle("no-anim", !animate);
+  for (const s of document.querySelectorAll(".page")) s.hidden = s.id !== page;
+  for (const a of document.querySelectorAll(".rail a, .dock a")) {
+    if (a.getAttribute("href") === "#" + page) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
   }
+  PAGES[page]();
+  if (!animate) return;
+  const section = document.getElementById(page);
+  section.querySelectorAll(".page-head, .flow, .tile, .card").forEach((n, i) => {
+    n.classList.remove("enter"); void n.offsetWidth; n.style.setProperty("--i", i); n.classList.add("enter");
+  });
+  countUp(section.querySelectorAll(".tile .v, svg text.val, svg text.big, .donut b, .donut em"));
+}
+function rerender() { show(false); }
+
+const themeBtn = document.getElementById("theme");
+const isDark = () => document.documentElement.dataset.theme ? document.documentElement.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+function syncThemeButton() {
+  themeBtn.querySelector("use").setAttribute("href", isDark() ? "#i-sun" : "#i-moon");
+  themeBtn.setAttribute("aria-label", isDark() ? "Switch to light theme" : "Switch to dark theme");
+}
+themeBtn.addEventListener("click", () => {
+  const next = isDark() ? "light" : "dark";
+  document.documentElement.dataset.theme = next;
+  try { localStorage.setItem("theme", next); } catch (e) {}
+  syncThemeButton(); rerender();
+});
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { syncThemeButton(); rerender(); });
+syncThemeButton();
+
+let lastW = innerWidth, rt;
+addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { if (Math.abs(innerWidth - lastW) > 40) { lastW = innerWidth; rerender(); } }, 200); });
+addEventListener("hashchange", () => { show(); scrollTo({ top: 0 }); });
+
+(async function () {
+  const names = { bronze: "bronze.json", silver: "silver.json", stream: "streaming.json", fc: "forecast.json", bench: "benchmark.json",
+    daily: "data/daily_kpis.json", zones: "data/zone_summary.json", profile: "data/hour_weekday_profile.json",
+    fcDaily: "data/forecast_daily.json", shapes: "data/zone_shapes.json" };
+  const vals = await Promise.all(Object.values(names).map(load));
+  Object.keys(names).forEach((k, i) => (D[k] = vals[i]));
+  const info = document.querySelector("#pill-info span:last-child");
+  info.textContent = D.bronze ? `${compact.format(D.bronze.rows)} trips · ${D.bronze.months} months` + (D.zones ? ` · ${D.zones.length} zones` : "") : "Pipeline reports not found";
+  show();
 })();
 </script>
 </body>

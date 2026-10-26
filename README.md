@@ -7,8 +7,8 @@ It runs medallion layers (bronze, silver, gold) with data-quality rules and a qu
 a Structured Streaming replay, a Spark MLlib demand forecast and a measured tuning study.
 Everything runs in one Docker container on a laptop.
 
-**Live dashboard:** https://neilss170.github.io/nyc-taxi-lakehouse/ (a choropleth of all 263 taxi zones, daily volume,
-data-quality breakdown, forecast vs actuals, the tuning study and the streaming check)
+**Live dashboard:** https://neilss170.github.io/nyc-taxi-lakehouse/ (five tabs: overview, a choropleth of all 263 taxi
+zones, data-quality breakdown, forecast vs actuals, and the tuning study with the streaming check; plain HTML + SVG, no framework)
 
 Every number below comes from a file in [`reports/`](reports), written by the pipeline itself.
 
