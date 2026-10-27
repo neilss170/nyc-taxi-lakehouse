@@ -1,0 +1,30 @@
+{
+  "month": "2024-12",
+  "topic_partitions": 3,
+  "messages_produced": 3585099,
+  "produce_rows_per_second": 189808,
+  "consumer_runs": [
+    {
+      "run": 1,
+      "messages_produced": 1993061,
+      "micro_batches": 17,
+      "rows_consumed": 1993061
+    },
+    {
+      "run": 2,
+      "messages_produced": 1592038,
+      "micro_batches": 14,
+      "rows_consumed": 1592038
+    }
+  ],
+  "offsets_consumed": 3585099,
+  "rows_streamed": 3585099,
+  "rows_per_second": 41232,
+  "rows_dropped_by_watermark": 0,
+  "windows_written": 240424,
+  "windows_mismatched_vs_batch": 0,
+  "window": "15 minutes",
+  "watermark": "1 hour",
+  "max_offsets_per_trigger": 120000,
+  "seconds": 133.4
+}

@@ -351,12 +351,16 @@ footer { color: var(--muted); font-size: 13px; margin-top: 28px; text-align: cen
 
   <section class="page" id="engineering" aria-labelledby="h-engineering" hidden>
     <div class="page-head">
-      <div><h1 id="h-engineering">Engineering</h1><p>A tuning study on the real silver table, and a Structured Streaming replay checked against the batch result.</p></div>
+      <div><h1 id="h-engineering">Engineering</h1><p>A tuning study on the real silver table, and Structured Streaming replays (from files and from Kafka) checked against the batch result.</p></div>
     </div>
     <div class="card glass" style="margin-bottom:16px"><h3>Tuning study</h3><p class="sub" id="bench-sub"></p>
       <div class="chart" id="bench-chart"></div><div class="scroll"><table id="bench-table"></table></div></div>
     <div class="page-head" style="margin-top:28px"><div><h1 style="font-size:22px">Streaming replay</h1><p id="stream-sub"></p></div></div>
     <div class="tiles" id="stream-tiles"></div>
+    <div id="kafka-block" hidden>
+      <div class="page-head" style="margin-top:28px"><div><h1 style="font-size:22px">Kafka replay</h1><p id="kafka-sub"></p></div></div>
+      <div class="tiles" id="kafka-tiles"></div>
+    </div>
   </section>
 
   <footer>Data: NYC Taxi &amp; Limousine Commission trip records. Built with PySpark, Delta Lake and plain SVG.</footer>
@@ -835,7 +839,7 @@ const PAGES = {
   },
 
   engineering() {
-    const { bench, stream, silver } = D;
+    const { bench, stream, silver, kafka } = D;
     if (bench) {
       const flat = bench.results.filter((r) => r.speedup_x < 1.2).map((r) => label(r.experiment));
       document.getElementById("bench-sub").textContent =
@@ -861,6 +865,20 @@ const PAGES = {
       tile(t, "overview", "Windows written", fmt.format(stream.windows_written), "zone × 15-minute windows");
       tile(t, "check", "Mismatches vs batch", String(stream.windows_mismatched_vs_batch), "windows differing from the batch result");
       if (silver && silver.silver_files) tile(t, "files", "Silver layout", fmt.format(silver.silver_files) + " files", `~${silver.silver_avg_file_mb} MB each after compaction`);
+    }
+    if (kafka) {
+      document.getElementById("kafka-block").hidden = false;
+      const [first, second] = kafka.consumer_runs;
+      document.getElementById("kafka-sub").textContent =
+        `The same month published to a ${kafka.topic_partitions}-partition Kafka topic, keyed by pickup zone, and consumed in two runs: ` +
+        `the second is a restart that resumes from the checkpointed offsets. Same windows, watermark and MERGE as above.`;
+      const t = fresh("kafka-tiles");
+      tile(t, "pulse", "Messages produced", compact.format(kafka.messages_produced), `${compact.format(kafka.produce_rows_per_second)}/s into the topic`);
+      tile(t, "engine", "Consumed", compact.format(kafka.rows_per_second) + "/s",
+        `${first.micro_batches} + ${second.micro_batches} micro-batches over 2 runs`);
+      tile(t, "files", "Offsets consumed", fmt.format(kafka.offsets_consumed), `of ${fmt.format(kafka.messages_produced)} produced, none read twice`);
+      tile(t, "overview", "Windows written", fmt.format(kafka.windows_written), `${fmt.format(kafka.rows_dropped_by_watermark)} rows dropped by the watermark`);
+      tile(t, "check", "Mismatches vs batch", String(kafka.windows_mismatched_vs_batch), "windows differing from the batch result");
     }
   },
 };
@@ -904,7 +922,7 @@ addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { if 
 addEventListener("hashchange", () => { show(); scrollTo({ top: 0 }); });
 
 (async function () {
-  const names = { bronze: "bronze.json", silver: "silver.json", stream: "streaming.json", fc: "forecast.json", bench: "benchmark.json",
+  const names = { bronze: "bronze.json", silver: "silver.json", stream: "streaming.json", kafka: "kafka.json", fc: "forecast.json", bench: "benchmark.json",
     daily: "data/daily_kpis.json", zones: "data/zone_summary.json", profile: "data/hour_weekday_profile.json",
     fcDaily: "data/forecast_daily.json", shapes: "data/zone_shapes.json" };
   const vals = await Promise.all(Object.values(names).map(load));
@@ -983,6 +1001,12 @@ const TOUR = [
     "target": "#stream-tiles",
     "title": "Streaming, checked against batch",
     "text": "One month replayed as a live stream, then compared window by window with the batch answer."
+  },
+  {
+    "page": "engineering",
+    "target": "#kafka-tiles",
+    "title": "And again through Kafka",
+    "text": "The same month sent through a Kafka topic and consumed twice, with a restart in between. Every message is read exactly once and the result still matches batch."
   },
   {
     "target": "#theme",

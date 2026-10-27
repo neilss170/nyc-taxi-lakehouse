@@ -4,8 +4,8 @@
 
 An Apache Spark 4.1 + Delta Lake pipeline over **79.5 million** NYC yellow-taxi trips (all of 2023–2024).
 It runs medallion layers (bronze, silver, gold) with data-quality rules and a quarantine table,
-a Structured Streaming replay, a Spark MLlib demand forecast and a measured tuning study.
-Everything runs in one Docker container on a laptop.
+a Structured Streaming replay (from files and from Kafka), a Spark MLlib demand forecast and a measured tuning study.
+Everything runs in Docker on a laptop: one Spark container, plus a Kafka broker for the Kafka replay.
 
 **Live dashboard:** https://neilss170.github.io/nyc-taxi-lakehouse/ (five tabs: overview, a choropleth of all 263 taxi
 zones, data-quality breakdown, forecast vs actuals, and the tuning study with the streaming check; plain HTML + SVG, no framework)
@@ -19,7 +19,7 @@ zones, data-quality breakdown, forecast vs actuals, and the tuning study with th
   </tr>
   <tr>
     <td width="50%"><img src="docs/screenshots/forecast-light.webp" alt="Forecast page: GBT vs baselines on held-out Q4 2024 and feature importance"><br><sub>Forecast: GBT vs naive baselines, held-out Q4 2024</sub></td>
-    <td width="50%"><img src="docs/screenshots/engineering-dark.webp" alt="Engineering page: tuning study speed-ups and streaming replay checks, dark theme"><br><sub>Engineering: tuning study and streaming replay</sub></td>
+    <td width="50%"><img src="docs/screenshots/engineering-dark.webp" alt="Engineering page: tuning study speed-ups, file and Kafka streaming replay checks, dark theme"><br><sub>Engineering: tuning study, file and Kafka streaming replays</sub></td>
   </tr>
 </table>
 
@@ -39,6 +39,7 @@ Every number below comes from a file in [`reports/`](reports), written by the pi
 | Silver | Dedupes, applies 15 profiled rules (10 errors, 5 warnings), quarantines failures with reasons | 78,245,114 rows pass (98.45%); 1,234,826 quarantined; 6 duplicates; every row accounted for |
 | Gold | Six business tables: daily KPIs, zone × hour demand, zones, borough flows, hour × weekday, airports | All reconcile to the silver total; a gap in the published source data is detected automatically |
 | Streaming | Replays Dec 2024 day by day: 15-min zone windows, 1 h watermark, `foreachBatch` MERGE | 3,585,099 rows in 31 micro-batches (~53k rows/s); all 240,424 windows match the batch result |
+| Kafka | Publishes Dec 2024 to a 3-partition topic keyed by zone; Spark consumes it in two runs, the second a restart from checkpointed offsets | 3,585,099 messages, each consumed once across the restart (~41k rows/s); 0 dropped by the watermark; all 240,424 windows match the batch result |
 | Forecast | Day-ahead hourly pickups for the 88 busiest zones (98.8% of trips), GBT vs naive baselines | Held-out Q4 2024 WAPE **19.7%** vs 26.2% for the best baseline (**24.8% lower error**) |
 | Tuning | Six before/after experiments on the real silver table | Median of 5 rounds: partition pruning **12×**, broadcast join **8.4×**, Parquet vs CSV **2.9×** |
 
@@ -119,6 +120,9 @@ docker compose build
 docker compose run --rm spark python -m lakehouse all        # download -> bronze -> ... -> benchmark
 docker compose run --rm spark python -m pytest               # tests
 python -m http.server -d site 8000                           # dashboard (after: cp -r reports site/reports)
+
+docker compose --profile kafka up -d --wait kafka            # single-node Kafka (KRaft), only for the kafka stage
+docker compose run --rm spark python -m lakehouse kafka      # also lets the Kafka tests run instead of skipping
 ```
 
 You can run stages one at a time (`python -m lakehouse silver gold`). Each stage overwrites only the
@@ -136,6 +140,7 @@ src/lakehouse/
   gold.py        business tables, source-gap flag, dashboard extracts
   zonemap.py     TLC zone shapefile -> simplified SVG paths for the dashboard map
   streaming.py   file-stream replay, watermark, foreachBatch MERGE, batch parity check
+  kafka_stream.py Kafka producer + consumer replay with a restart, offset and batch parity checks
   forecast.py    dense grid, leakage-safe features, GBT vs baselines
   benchmark.py   before/after timing harness, Delta log file-stats reader
   vacuum.py      removes data files no retained Delta version references
@@ -147,8 +152,9 @@ site/            static dashboard (GitHub Pages)
 ## Limits
 
 - Single-node `local[*]` Spark in an 8 GB Docker VM. The timings are laptop numbers; the ratios are what matter.
-- Streaming replays files from disk rather than reading from Kafka. The semantics (watermark, idempotent MERGE sink,
-  checkpointed restart) are the same, and the tests cover them.
+- Kafka is a single broker with replication factor 1, and the producer is a Spark batch write rather than a live feed.
+  Ordering holds per partition only, so the consumer caps each micro-batch (120,000 offsets) to keep partitions close in
+  event time; the report counts rows dropped by the watermark in case they drift apart (0 in this run).
 - The forecast has no weather or event data, which is the obvious next feature set.
 
 Data: [NYC Taxi & Limousine Commission trip records](https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page).

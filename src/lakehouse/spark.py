@@ -7,6 +7,9 @@ import os
 from delta import configure_spark_with_delta_pip
 from pyspark.sql import SparkSession
 
+# Structured Streaming's Kafka source and sink, matched to the pyspark version (Scala 2.13 build)
+KAFKA_PACKAGE = "org.apache.spark:spark-sql-kafka-0-10_2.13:4.1.1"
+
 
 def get_spark(app_name: str = "nyc-taxi-lakehouse", conf: dict[str, str] | None = None) -> SparkSession:
     builder = (
@@ -21,6 +24,6 @@ def get_spark(app_name: str = "nyc-taxi-lakehouse", conf: dict[str, str] | None 
     )
     for key, value in (conf or {}).items():
         builder = builder.config(key, value)
-    spark = configure_spark_with_delta_pip(builder).getOrCreate()
+    spark = configure_spark_with_delta_pip(builder, extra_packages=[KAFKA_PACKAGE]).getOrCreate()
     spark.sparkContext.setLogLevel("WARN")
     return spark

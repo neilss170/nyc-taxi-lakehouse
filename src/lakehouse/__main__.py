@@ -9,6 +9,8 @@ import time
 from lakehouse import config
 
 STAGES = ["download", "bronze", "silver", "gold", "zonemap", "streaming", "forecast", "benchmark", "vacuum"]
+# need a running broker, so not part of "all": docker compose --profile kafka up -d kafka
+OPTIONAL_STAGES = {"kafka": "kafka_stream"}
 
 
 def _write_report(name: str, payload: dict) -> None:
@@ -18,7 +20,7 @@ def _write_report(name: str, payload: dict) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(prog="lakehouse")
-    parser.add_argument("stages", nargs="+", choices=STAGES + ["all"])
+    parser.add_argument("stages", nargs="+", choices=STAGES + list(OPTIONAL_STAGES) + ["all"])
     args = parser.parse_args()
     stages = STAGES if "all" in args.stages else args.stages
 
@@ -32,7 +34,7 @@ def main() -> None:
             if spark is None:
                 from lakehouse.spark import get_spark
                 spark = get_spark()
-            module = __import__(f"lakehouse.{stage}", fromlist=["run"])
+            module = __import__(f"lakehouse.{OPTIONAL_STAGES.get(stage, stage)}", fromlist=["run"])
             result = module.run(spark)
         result["seconds"] = round(time.perf_counter() - started, 1)
         _write_report(stage, result)
