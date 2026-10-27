@@ -1,12 +1,18 @@
 """Performance study: each experiment times the same query under two settings on real silver data.
 
 Timing = median of 3 runs after 1 warm-up, forced end-to-end with the `noop` sink so result
-collection does not count. Laptop numbers (local[*] in Docker); the ratios are the point.
+collection does not count. A single round of that proved noisy (a from-scratch rerun moved some
+speed-ups by half), so the report is the median speed-up, with its range, over the last ROUNDS rounds.
+
+Each run of this stage is one round in a fresh JVM, saved to reports/benchmark_rounds/: running
+all rounds in one JVM grew its off-heap memory until the kernel OOM-killed it in round 4 (8 GB VM).
+Run the stage ROUNDS times to complete the report. Laptop numbers (local[*] in Docker).
 """
 
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import statistics
 import time
@@ -20,6 +26,7 @@ from pyspark.sql import functions as F
 from lakehouse import config
 
 RUNS = 3
+ROUNDS = int(os.getenv("LAKEHOUSE_BENCH_ROUNDS", "5"))
 
 
 @contextmanager
@@ -178,16 +185,47 @@ def zorder_skipping(spark: SparkSession, months: list[str], zone: int = 132) -> 
                                    "tuned": files_possibly_matching(after_files, "pu_location_id", zone)})
 
 
+def aggregate(rounds: list[list[dict]]) -> list[dict]:
+    """One result per experiment: median seconds and speed-up across rounds, plus the range and every round."""
+    out = []
+    for runs in zip(*rounds):
+        speedups = [r["speedup_x"] for r in runs]
+        merged = {**runs[0],
+                  "baseline": {**runs[0]["baseline"], "seconds": round(statistics.median(r["baseline"]["seconds"] for r in runs), 2)},
+                  "tuned": {**runs[0]["tuned"], "seconds": round(statistics.median(r["tuned"]["seconds"] for r in runs), 2)},
+                  "speedup_x": round(statistics.median(speedups), 2),
+                  "speedup_range": [min(speedups), max(speedups)],
+                  "speedup_by_round": speedups}
+        out.append(merged)
+    return out
+
+
+def saved_rounds(rounds_dir: Path) -> list[Path]:
+    return sorted(rounds_dir.glob("round-*.json"), key=lambda f: int(f.stem.split("-")[1]))
+
+
 def run(spark: SparkSession) -> dict:
     months = config.months()
+    results = [
+        partition_pruning(spark, months[-1]),
+        columnar_format(spark, months[-1]),
+        broadcast_join(spark),
+        adaptive_execution(spark),
+        file_compaction(spark, months[-6:]),
+        zorder_skipping(spark, months[-6:]),
+    ]
+    rounds_dir = config.REPORTS_DIR / "benchmark_rounds"
+    rounds_dir.mkdir(parents=True, exist_ok=True)
+    done = saved_rounds(rounds_dir)
+    number = int(done[-1].stem.split("-")[1]) + 1 if done else 1
+    (rounds_dir / f"round-{number}.json").write_text(json.dumps(results, indent=2) + "\n")
+    print(f"[benchmark] round {number}: " + ", ".join(f"{r['experiment']} {r['speedup_x']}x" for r in results), flush=True)
+
+    rounds = [json.loads(f.read_text()) for f in saved_rounds(rounds_dir)[-ROUNDS:]]
     return {
-        "method": f"median of {RUNS} runs after 1 warm-up; noop sink; local[*] Spark in Docker (8 GB VM)",
-        "results": [
-            partition_pruning(spark, months[-1]),
-            columnar_format(spark, months[-1]),
-            broadcast_join(spark),
-            adaptive_execution(spark),
-            file_compaction(spark, months[-6:]),
-            zorder_skipping(spark, months[-6:]),
-        ],
+        "method": f"{len(rounds)} rounds, each in a fresh Spark JVM; each time is the median of {RUNS} runs after 1 warm-up; "
+                  f"speed-up is the median across rounds (range min-max); noop sink; local[*] Spark in Docker (8 GB VM)",
+        "rounds": len(rounds),
+        "rounds_wanted": ROUNDS,
+        "results": aggregate(rounds),
     }

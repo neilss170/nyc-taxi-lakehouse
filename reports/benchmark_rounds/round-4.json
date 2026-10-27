@@ -1,0 +1,96 @@
+[
+  {
+    "experiment": "partition_pruning",
+    "question": "daily revenue for 2024-12 out of 24 months",
+    "baseline": {
+      "setting": "filter date_format(pickup_ts) = month (function hides the column)",
+      "seconds": 4.63
+    },
+    "tuned": {
+      "setting": "filter on partition column source_month",
+      "seconds": 0.35
+    },
+    "speedup_x": 13.23,
+    "files_scanned": {
+      "baseline": 48,
+      "tuned": 2
+    }
+  },
+  {
+    "experiment": "columnar_format",
+    "question": "average tip per zone for 2024-12: 2 of 30 columns needed",
+    "baseline": {
+      "setting": "CSV (row format, whole rows parsed)",
+      "seconds": 1.22
+    },
+    "tuned": {
+      "setting": "Delta/Parquet (column pruning)",
+      "seconds": 0.34
+    },
+    "speedup_x": 3.59,
+    "storage_mb": {
+      "csv": 746.4,
+      "delta_parquet": 108.6
+    }
+  },
+  {
+    "experiment": "broadcast_join",
+    "question": "trips by pickup borough: join 78M trips to the 265-row zone table",
+    "baseline": {
+      "setting": "sort-merge join (broadcast disabled)",
+      "seconds": 12.21
+    },
+    "tuned": {
+      "setting": "broadcast hash join",
+      "seconds": 1.41
+    },
+    "speedup_x": 8.66
+  },
+  {
+    "experiment": "adaptive_query_execution",
+    "question": "origin x destination x hour aggregate with 1000 shuffle partitions",
+    "baseline": {
+      "setting": "AQE off: 1000 fixed reduce tasks",
+      "seconds": 3.58
+    },
+    "tuned": {
+      "setting": "AQE on: partitions coalesced at runtime",
+      "seconds": 3.05
+    },
+    "speedup_x": 1.17
+  },
+  {
+    "experiment": "file_compaction",
+    "question": "scan 6 months grouped by payment type",
+    "baseline": {
+      "setting": "1200 small files",
+      "seconds": 0.7
+    },
+    "tuned": {
+      "setting": "OPTIMIZE bin-packed to 1 files",
+      "seconds": 0.55
+    },
+    "speedup_x": 1.27,
+    "files_scanned": {
+      "baseline": 1200,
+      "tuned": 1
+    }
+  },
+  {
+    "experiment": "zorder_data_skipping",
+    "question": "JFK pickups over 6 months: one zone out of 265",
+    "baseline": {
+      "setting": "48 randomly ordered files",
+      "seconds": 0.39
+    },
+    "tuned": {
+      "setting": "OPTIMIZE ZORDER BY pu_location_id (20 files)",
+      "seconds": 0.24
+    },
+    "speedup_x": 1.63,
+    "files_scanned": {
+      "baseline": 48,
+      "tuned": 2
+    }
+  }
+]

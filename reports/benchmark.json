@@ -1,82 +1,139 @@
 {
-  "method": "median of 3 runs after 1 warm-up; noop sink; local[*] Spark in Docker (8 GB VM)",
+  "method": "5 rounds, each in a fresh Spark JVM; each time is the median of 3 runs after 1 warm-up; speed-up is the median across rounds (range min-max); noop sink; local[*] Spark in Docker (8 GB VM)",
+  "rounds": 5,
+  "rounds_wanted": 5,
   "results": [
     {
       "experiment": "partition_pruning",
       "question": "daily revenue for 2024-12 out of 24 months",
       "baseline": {
         "setting": "filter date_format(pickup_ts) = month (function hides the column)",
-        "seconds": 6.42
+        "seconds": 4.45
       },
       "tuned": {
         "setting": "filter on partition column source_month",
         "seconds": 0.37
       },
-      "speedup_x": 17.35,
+      "speedup_x": 12.03,
       "files_scanned": {
         "baseline": 48,
         "tuned": 2
-      }
+      },
+      "speedup_range": [
+        9.19,
+        13.23
+      ],
+      "speedup_by_round": [
+        12.03,
+        13.02,
+        11.43,
+        13.23,
+        9.19
+      ]
     },
     {
       "experiment": "columnar_format",
       "question": "average tip per zone for 2024-12: 2 of 30 columns needed",
       "baseline": {
         "setting": "CSV (row format, whole rows parsed)",
-        "seconds": 1.57
+        "seconds": 1.48
       },
       "tuned": {
         "setting": "Delta/Parquet (column pruning)",
-        "seconds": 0.38
+        "seconds": 0.44
       },
-      "speedup_x": 4.13,
+      "speedup_x": 2.9,
       "storage_mb": {
         "csv": 746.4,
         "delta_parquet": 108.6
-      }
+      },
+      "speedup_range": [
+        2.64,
+        3.59
+      ],
+      "speedup_by_round": [
+        3.57,
+        2.64,
+        2.9,
+        3.59,
+        2.86
+      ]
     },
     {
       "experiment": "broadcast_join",
       "question": "trips by pickup borough: join 78M trips to the 265-row zone table",
       "baseline": {
         "setting": "sort-merge join (broadcast disabled)",
-        "seconds": 15.03
+        "seconds": 13.57
       },
       "tuned": {
         "setting": "broadcast hash join",
-        "seconds": 1.92
+        "seconds": 1.61
       },
-      "speedup_x": 7.83
+      "speedup_x": 8.43,
+      "speedup_range": [
+        6.4,
+        9.44
+      ],
+      "speedup_by_round": [
+        6.4,
+        9.44,
+        8.43,
+        8.66,
+        8.23
+      ]
     },
     {
       "experiment": "adaptive_query_execution",
       "question": "origin x destination x hour aggregate with 1000 shuffle partitions",
       "baseline": {
         "setting": "AQE off: 1000 fixed reduce tasks",
-        "seconds": 4.77
+        "seconds": 3.84
       },
       "tuned": {
         "setting": "AQE on: partitions coalesced at runtime",
-        "seconds": 4.47
+        "seconds": 3.17
       },
-      "speedup_x": 1.07
+      "speedup_x": 1.23,
+      "speedup_range": [
+        1.17,
+        1.37
+      ],
+      "speedup_by_round": [
+        1.37,
+        1.26,
+        1.23,
+        1.17,
+        1.2
+      ]
     },
     {
       "experiment": "file_compaction",
       "question": "scan 6 months grouped by payment type",
       "baseline": {
         "setting": "1200 small files",
-        "seconds": 1.45
+        "seconds": 0.74
       },
       "tuned": {
         "setting": "OPTIMIZE bin-packed to 1 files",
-        "seconds": 0.62
+        "seconds": 0.55
       },
-      "speedup_x": 2.34,
+      "speedup_x": 1.37,
       "files_scanned": {
         "baseline": 1200,
         "tuned": 1
-      }
+      },
+      "speedup_range": [
+        1.07,
+        1.83
+      ],
+      "speedup_by_round": [
+        1.07,
+        1.83,
+        1.56,
+        1.27,
+        1.37
+      ]
     },
     {
       "experiment": "zorder_data_skipping",
@@ -87,14 +144,25 @@
       },
       "tuned": {
         "setting": "OPTIMIZE ZORDER BY pu_location_id (20 files)",
-        "seconds": 0.26
+        "seconds": 0.24
       },
-      "speedup_x": 1.5,
+      "speedup_x": 1.63,
       "files_scanned": {
         "baseline": 48,
         "tuned": 2
-      }
+      },
+      "speedup_range": [
+        1.43,
+        4.76
+      ],
+      "speedup_by_round": [
+        1.43,
+        4.76,
+        1.63,
+        1.63,
+        1.52
+      ]
     }
   ],
-  "seconds": 569.3
+  "seconds": 423.6
 }

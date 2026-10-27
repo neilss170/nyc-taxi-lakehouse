@@ -40,7 +40,7 @@ Every number below comes from a file in [`reports/`](reports), written by the pi
 | Gold | Six business tables: daily KPIs, zone × hour demand, zones, borough flows, hour × weekday, airports | All reconcile to the silver total; a gap in the published source data is detected automatically |
 | Streaming | Replays Dec 2024 day by day: 15-min zone windows, 1 h watermark, `foreachBatch` MERGE | 3,585,099 rows in 31 micro-batches (~53k rows/s); all 240,424 windows match the batch result |
 | Forecast | Day-ahead hourly pickups for the 88 busiest zones (98.8% of trips), GBT vs naive baselines | Held-out Q4 2024 WAPE **19.7%** vs 26.2% for the best baseline (**24.8% lower error**) |
-| Tuning | Six before/after experiments on the real silver table | Partition pruning **17×**, broadcast join **7.8×**, Parquet vs CSV **4.1×**, compaction **2.3×** |
+| Tuning | Six before/after experiments on the real silver table | Median of 5 rounds: partition pruning **12×**, broadcast join **8.4×**, Parquet vs CSV **2.9×** |
 
 ## What the data actually looked like
 
@@ -65,27 +65,32 @@ Profiling the raw data changed the design. These are the findings worth knowing:
 ## Tuning study
 
 Each experiment times the same query under two settings on the real silver table: the median of 3 runs after a
-warm-up, run end to end with Spark's `noop` sink. Where Delta's file statistics explain the result, the file
-count is shown too. For Z-order, the file count is read straight from the Delta log's per-file min/max stats.
+warm-up, run end to end with Spark's `noop` sink. One round of that turned out to be noisy (a from-scratch rerun moved
+some speed-ups by half), so the study runs **5 rounds, each in a fresh Spark JVM**, and reports the median speed-up with
+its min–max range. Every round is kept in [`reports/benchmark_rounds/`](reports/benchmark_rounds/). Where Delta's file
+statistics explain the result, the file count is shown too; for Z-order it is read straight from the Delta log's
+per-file min/max stats.
 
-| Experiment | Baseline → tuned | Files read | Seconds | Speed-up |
-|---|---|---|---|---|
-| Partition pruning (Dec 2024 out of 24 months) | `date_format(pickup_ts)` filter → filter on partition column | 48 → 2 | 6.42 → 0.37 | **17.4×** |
-| Broadcast join (78M trips × 265 zones) | sort-merge join → broadcast hash join | | 15.03 → 1.92 | **7.8×** |
-| Columnar format (one month, 2 of 30 columns) | CSV → Delta/Parquet | | 1.57 → 0.38 | **4.1×** |
-| File compaction (6 months) | 1,200 small files → `OPTIMIZE` | 1,200 → 1 | 1.45 → 0.62 | **2.3×** |
-| Z-order data skipping (JFK only, 6 months) | random layout → `OPTIMIZE ZORDER BY pu_location_id` | 48 → 2 of 20 could match | 0.39 → 0.26 | 1.5× |
-| Adaptive query execution (1,000 shuffle partitions) | AQE off → on | | 4.77 → 4.47 | 1.07× |
+| Experiment | Baseline → tuned | Files read | Median seconds | Speed-up (median) | Range over 5 rounds |
+|---|---|---|---|---|---|
+| Partition pruning (Dec 2024 out of 24 months) | `date_format(pickup_ts)` filter → filter on partition column | 48 → 2 | 4.45 → 0.37 | **12.0×** | 9.2–13.2× |
+| Broadcast join (78M trips × 265 zones) | sort-merge join → broadcast hash join | | 13.57 → 1.61 | **8.4×** | 6.4–9.4× |
+| Columnar format (one month, 2 of 30 columns) | CSV → Delta/Parquet | | 1.48 → 0.44 | **2.9×** | 2.6–3.6× |
+| Z-order data skipping (JFK only, 6 months) | random layout → `OPTIMIZE ZORDER BY pu_location_id` | 48 → 2 of 20 could match | 0.39 → 0.24 | 1.6× | 1.4–4.8× |
+| File compaction (6 months) | 1,200 small files → `OPTIMIZE` | 1,200 → 1 | 0.74 → 0.55 | 1.4× | 1.1–1.8× |
+| Adaptive query execution (1,000 shuffle partitions) | AQE off → on | | 3.84 → 3.17 | 1.2× | 1.2–1.4× |
 
 What to read from this:
 - **Wrapping a column in a function is the costly mistake.** Filtering on `pickup_date` directly would still be fast,
   because Delta skips files using min/max stats. `date_format(pickup_ts, ...)` hides the column from both partition
   pruning and those stats.
 - **The CSV copy of one month is 746 MB; the Delta/Parquet copy is 109 MB.**
-- **AQE made no meaningful difference here.** The aggregate's output is small, so 1,000 tiny reduce tasks cost little.
-  It's reported anyway.
-- **Z-order's time saving is small** because the query is already sub-second on a laptop. The skipped files (18 of 20)
-  are the part that scales.
+- **AQE gives a small but steady gain** (1.2–1.4× in every round). The aggregate's output is small, so 1,000 tiny
+  reduce tasks cost little to begin with.
+- **Z-order and compaction save little time here** because both queries are already sub-second on a laptop, and their
+  ranges are the widest. The skipped files (18 of 20 for Z-order) are the part that scales.
+- **The single-run numbers this table replaces were optimistic** (partition pruning 17.4×, compaction 2.3×). Re-running
+  is what showed it.
 
 The small-file problem was real in this project too. Silver was first written straight out of a 200-partition shuffle:
 **4,800 files averaging 0.59 MB**. Writing each month as 2 files gives **48 files of about 49 MB**. Each month's write now

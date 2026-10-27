@@ -841,12 +841,15 @@ const PAGES = {
       document.getElementById("bench-sub").textContent =
         `The same query under two settings, on the real silver table. ${bench.method}. Laptop seconds; the ratios are the point.` +
         (flat.length ? ` ${flat.join(", ")} gave no meaningful gain on this workload.` : "");
-      hbars(fresh("bench-chart"), bench.results.map((r) => ({ label: label(r.experiment), value: r.speedup_x, note: `${r.baseline.seconds}s → ${r.tuned.seconds}s` })),
+      // multi-round reports carry the spread across rounds; show it wherever the speed-up appears
+      const range = (r) => (r.speedup_range ? ` (range ${r.speedup_range[0].toFixed(1)}–${r.speedup_range[1].toFixed(1)}× over ${r.speedup_by_round.length} rounds)` : "");
+      hbars(fresh("bench-chart"), bench.results.map((r) => ({ label: label(r.experiment), value: r.speedup_x, note: `${r.baseline.seconds}s → ${r.tuned.seconds}s${range(r)}` })),
         { valueFmt: (v) => v.toFixed(1) + "×", labelW: 210 });
-      table(document.getElementById("bench-table"), ["Experiment", "Baseline", "Tuned", "Files read", "Seconds", "Speed-up"],
+      table(document.getElementById("bench-table"), ["Experiment", "Baseline", "Tuned", "Files read", "Seconds", "Speed-up", "Range"],
         bench.results.map((r) => [label(r.experiment), r.baseline.setting, r.tuned.setting,
           r.files_scanned ? `${fmt.format(r.files_scanned.baseline)} → ${fmt.format(r.files_scanned.tuned)}` : "–",
-          `${r.baseline.seconds} → ${r.tuned.seconds}`, r.speedup_x.toFixed(2) + "×"]), [3, 4, 5]);
+          `${r.baseline.seconds} → ${r.tuned.seconds}`, r.speedup_x.toFixed(2) + "×",
+          r.speedup_range ? `${r.speedup_range[0].toFixed(2)}–${r.speedup_range[1].toFixed(2)}×` : "–"]), [3, 4, 5, 6]);
     }
     if (stream) {
       document.getElementById("stream-sub").textContent =
